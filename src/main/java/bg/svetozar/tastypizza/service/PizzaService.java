@@ -31,12 +31,11 @@ public class PizzaService {
     public List<PizzaDto> getAll(boolean withVariants) {
         List<Pizza> pizzas = pizzaRepository.findByProduct_AvailableTrue();
 
-        if (!withVariants) {
-            pizzas.forEach(p -> p.getVariants().clear());
-        }
-
         return pizzas.stream()
-                .map(PizzaMapper::toDto)
+                .map(p -> withVariants
+                        ? PizzaMapper.toDto(p)
+                        : PizzaMapper.toDtoWithoutVariants(p)
+                )
                 .toList();
     }
 
@@ -52,7 +51,7 @@ public class PizzaService {
                 .name(request.name())
                 .description(request.description())
                 .available(request.available())
-                .basePrice(request.basePrice())
+                .basePrice(new BigDecimal(request.basePrice()))
                 .imageUrl(request.imageUrl())
                 .type(ProductType.PIZZA)
                 .available(true)
@@ -83,7 +82,7 @@ public class PizzaService {
         product.setName(request.name());
         product.setAvailable(request.available());
         product.setDescription(request.description());
-        product.setBasePrice(request.basePrice());
+        product.setBasePrice(new BigDecimal(request.basePrice()));
         product.setImageUrl(request.imageUrl());
 
         existing.setSpicyLevel(request.spicyLevel() != null
@@ -120,7 +119,7 @@ public class PizzaService {
                         .pizza(pizza)
                         .size(PizzaSize.valueOf(req.size()))
                         .dough(DoughType.valueOf(req.dough()))
-                        .extraPrice(req.extraPrice())
+                        .extraPrice(new BigDecimal(req.extraPrice()))
                         .build())
                 .toList();
     }

@@ -6,6 +6,6 @@ public record PizzaVariantDto(
         Long id,
         String size,
         String dough,
-        BigDecimal extraPrice
+        String extraPrice
 ) {
 }

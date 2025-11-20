@@ -7,7 +7,7 @@ public record PizzaDto(
         Long id,
         String name,
         String description,
-        BigDecimal basePrice,
+        String basePrice,
         boolean available,
         String spicyLevel,
         String imageUrl,

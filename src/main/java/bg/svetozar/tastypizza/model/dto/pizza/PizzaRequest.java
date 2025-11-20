@@ -6,7 +6,7 @@ import java.util.List;
 public record PizzaRequest(
         String name,
         String description,
-        BigDecimal basePrice,
+        String basePrice,
         boolean available,
         String imageUrl,
         String spicyLevel,
