@@ -7,7 +7,6 @@ public record PizzaRequest(
         String name,
         String description,
         String basePrice,
-        boolean available,
         String imageUrl,
         String spicyLevel,
         List<PizzaVariantRequest> variants

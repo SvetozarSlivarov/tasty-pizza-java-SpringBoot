@@ -1,4 +1,4 @@
-package bg.svetozar.tastypizza.web;
+package bg.svetozar.tastypizza.controller;
 
 import bg.svetozar.tastypizza.model.dto.pizza.PizzaDto;
 import bg.svetozar.tastypizza.model.dto.pizza.PizzaRequest;
@@ -37,6 +37,7 @@ public class PizzaController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public PizzaDto update(@PathVariable Long id,
                            @RequestBody PizzaRequest request) {
         return pizzaService.update(id, request);

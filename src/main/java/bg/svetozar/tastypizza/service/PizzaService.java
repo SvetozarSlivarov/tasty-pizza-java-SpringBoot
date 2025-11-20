@@ -28,33 +28,33 @@ public class PizzaService {
     private final ProductService productService;
 
 
+
     public List<PizzaDto> getAll(boolean withVariants) {
-        List<Pizza> pizzas = pizzaRepository.findByProduct_AvailableTrue();
+
+        List<Pizza> pizzas = withVariants
+                ? pizzaRepository.findAllFull()
+                : pizzaRepository.findAllLight();
 
         return pizzas.stream()
                 .map(p -> withVariants
-                        ? PizzaMapper.toDto(p)
-                        : PizzaMapper.toDtoWithoutVariants(p)
-                )
+                        ? PizzaMapper.toPizzaDto(p)
+                        : PizzaMapper.toPizzaDtoWithoutVariants(p))
                 .toList();
     }
-
     public PizzaDto getById(Long id) {
-        Pizza pizza = pizzaRepository.findById(id)
+        Pizza pizza = pizzaRepository.findByIdFull(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pizza not found: " + id));
-        return PizzaMapper.toDto(pizza);
+
+        return PizzaMapper.toPizzaDto(pizza);
     }
 
-    // CREATE
     public PizzaDto create(PizzaRequest request) {
         Product product = Product.builder()
                 .name(request.name())
                 .description(request.description())
-                .available(request.available())
                 .basePrice(new BigDecimal(request.basePrice()))
                 .imageUrl(request.imageUrl())
                 .type(ProductType.PIZZA)
-                .available(true)
                 .build();
 
         product = productService.createProduct(product);
@@ -70,7 +70,7 @@ public class PizzaService {
         pizza.setVariants(variants);
 
         Pizza saved = pizzaRepository.save(pizza);
-        return PizzaMapper.toDto(saved);
+        return PizzaMapper.toPizzaDto(saved);
     }
 
 
@@ -80,7 +80,6 @@ public class PizzaService {
 
         Product product = existing.getProduct();
         product.setName(request.name());
-        product.setAvailable(request.available());
         product.setDescription(request.description());
         product.setBasePrice(new BigDecimal(request.basePrice()));
         product.setImageUrl(request.imageUrl());
@@ -92,7 +91,7 @@ public class PizzaService {
         existing.getVariants().clear();
         List<PizzaVariant> variants = mapVariantsFromRequest(request.variants(), existing);
         existing.getVariants().addAll(variants);
-        return PizzaMapper.toDto(existing);
+        return PizzaMapper.toPizzaDto(existing);
     }
 
 

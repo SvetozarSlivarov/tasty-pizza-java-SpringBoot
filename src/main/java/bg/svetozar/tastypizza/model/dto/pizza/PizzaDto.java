@@ -1,6 +1,7 @@
 package bg.svetozar.tastypizza.model.dto.pizza;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record PizzaDto(
@@ -8,7 +9,8 @@ public record PizzaDto(
         String name,
         String description,
         String basePrice,
-        boolean available,
+        boolean deleted,
+        LocalDateTime deletedAt,
         String spicyLevel,
         String imageUrl,
         List<PizzaVariantDto> variants

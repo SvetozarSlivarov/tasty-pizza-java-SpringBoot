@@ -5,7 +5,6 @@ import bg.svetozar.tastypizza.model.dto.pizza.PizzaVariantDto;
 import bg.svetozar.tastypizza.model.entity.Pizza;
 import bg.svetozar.tastypizza.model.entity.PizzaVariant;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public final class PizzaMapper {
@@ -13,7 +12,7 @@ public final class PizzaMapper {
     private PizzaMapper() {
     }
 
-    public static PizzaDto toDto(Pizza pizza) {
+    public static PizzaDto toPizzaDto(Pizza pizza) {
         var product = pizza.getProduct();
 
         List<PizzaVariantDto> variants = pizza.getVariants().stream()
@@ -25,13 +24,14 @@ public final class PizzaMapper {
                 product.getName(),
                 product.getDescription(),
                 product.getBasePrice().toString(),
-                product.isAvailable(),
+                product.isDeleted(),
+                product.getDeletedAt(),
                 pizza.getSpicyLevel() != null ? pizza.getSpicyLevel().name() : null,
                 product.getImageUrl(),
                 variants
         );
     }
-    public static PizzaDto toDtoWithoutVariants(Pizza pizza) {
+    public static PizzaDto toPizzaDtoWithoutVariants(Pizza pizza) {
         var product = pizza.getProduct();
 
         return new PizzaDto(
@@ -39,7 +39,8 @@ public final class PizzaMapper {
                 product.getName(),
                 product.getDescription(),
                 product.getBasePrice().toString(),
-                product.isAvailable(),
+                product.isDeleted(),
+                product.getDeletedAt(),
                 pizza.getSpicyLevel() != null ? pizza.getSpicyLevel().name() : null,
                 product.getImageUrl(),
                 List.of()

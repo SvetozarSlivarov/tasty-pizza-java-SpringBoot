@@ -33,10 +33,6 @@ public class Product {
     @Column(name = "base_price", nullable = false, precision = 8, scale = 2)
     private BigDecimal basePrice;
 
-    @Column(name = "is_available", nullable = false)
-    @Builder.Default
-    private boolean available = true;
-
     @Column(name = "image_url", length = 1024)
     private String imageUrl;
 
