@@ -1,6 +1,6 @@
 package bg.svetozar.tastypizza.service;
 
-import bg.svetozar.tastypizza.exception.UserNotFoundException;
+import bg.svetozar.tastypizza.exception.InvalidCredentialsException;
 import bg.svetozar.tastypizza.exception.UsernameAlreadyTakenException;
 import bg.svetozar.tastypizza.model.dto.auth.AuthResponse;
 import bg.svetozar.tastypizza.model.dto.auth.LoginRequest;
@@ -13,6 +13,7 @@ import bg.svetozar.tastypizza.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -45,17 +46,24 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+
         var authToken = new UsernamePasswordAuthenticationToken(
                 request.getUsername(),
                 request.getPassword()
         );
-        authenticationManager.authenticate(authToken);
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new UserNotFoundException(request.getUsername()));
+        try {
+            var authentication = authenticationManager.authenticate(authToken);
 
-        CustomUserDetails userDetails = new CustomUserDetails(user);
-        String token = jwtService.generateToken(userDetails);
-        return new AuthResponse(token, user.getUsername(), user.getRole().name());
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            User user = userDetails.getUser();
+
+            String token = jwtService.generateToken(userDetails);
+
+            return new AuthResponse(token, user.getUsername(), user.getRole().name());
+
+        } catch (AuthenticationException ex) {
+            throw new InvalidCredentialsException();
+        }
     }
 }
