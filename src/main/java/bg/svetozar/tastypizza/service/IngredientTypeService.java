@@ -1,5 +1,7 @@
 package bg.svetozar.tastypizza.service;
 
+import bg.svetozar.tastypizza.exception.IngredientTypeAlreadyExistsException;
+import bg.svetozar.tastypizza.exception.IngredientTypeNotFoundException;
 import bg.svetozar.tastypizza.model.entity.IngredientType;
 import bg.svetozar.tastypizza.repository.IngredientTypeRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -22,19 +24,14 @@ public class IngredientTypeService {
 
     public IngredientType findById(Long id) {
         return ingredientTypeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Ingredient type with id: " + id + " not found"
-                ));
+                .orElseThrow(() -> new IngredientTypeNotFoundException(id));
     }
 
     public IngredientType create(String name) {
-
         String normalizedName = normalizeName(name);
 
         if (ingredientTypeRepository.existsByNameIgnoreCase(normalizedName)) {
-            throw new IllegalArgumentException(
-                    "Ingredient type [" + normalizedName + "] already exists"
-            );
+            throw new IngredientTypeAlreadyExistsException(normalizedName);
         }
 
         IngredientType ingredientType = IngredientType.builder()
@@ -45,40 +42,30 @@ public class IngredientTypeService {
     }
 
     public IngredientType update(Long id, String name) {
-
         IngredientType ingredientType = findById(id);
 
         String normalizedName = normalizeName(name);
 
         if (ingredientTypeRepository.existsByNameIgnoreCase(normalizedName)
                 && !ingredientType.getName().equalsIgnoreCase(normalizedName)) {
-
-            throw new IllegalArgumentException(
-                    "Ingredient type [" + normalizedName + "] already exists"
-            );
+            throw new IngredientTypeAlreadyExistsException(normalizedName);
         }
 
         ingredientType.setName(normalizedName);
-
         return ingredientTypeRepository.save(ingredientType);
     }
 
     public void deleteById(Long id) {
-        if (!ingredientTypeRepository.existsById(id)) {
-            throw new EntityNotFoundException("Ingredient type with id: " + id + " not found");
-        }
-        ingredientTypeRepository.deleteById(id);
+        IngredientType ingredientType = findById(id);
+        ingredientTypeRepository.delete(ingredientType);
     }
 
     public void deleteByName(String name) {
         String normalizedName = normalizeName(name);
 
         int deleted = ingredientTypeRepository.deleteAllByNameIgnoreCase(normalizedName);
-
         if (deleted == 0) {
-            throw new EntityNotFoundException(
-                    "Ingredient type with name [" + normalizedName + "] not found"
-            );
+            throw new IngredientTypeNotFoundException(normalizedName);
         }
     }
 

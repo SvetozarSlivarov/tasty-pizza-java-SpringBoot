@@ -1,5 +1,7 @@
 package bg.svetozar.tastypizza.service;
 
+import bg.svetozar.tastypizza.exception.UserNotFoundException;
+import bg.svetozar.tastypizza.exception.UsernameAlreadyTakenException;
 import bg.svetozar.tastypizza.model.dto.auth.AuthResponse;
 import bg.svetozar.tastypizza.model.dto.auth.LoginRequest;
 import bg.svetozar.tastypizza.model.dto.auth.RegisterRequest;
@@ -26,7 +28,7 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username is already taken");
+            throw new UsernameAlreadyTakenException(request.getUsername());
         }
 
         User user = User.builder()
@@ -50,7 +52,7 @@ public class AuthService {
         authenticationManager.authenticate(authToken);
 
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(request.getUsername()));
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
         String token = jwtService.generateToken(userDetails);
