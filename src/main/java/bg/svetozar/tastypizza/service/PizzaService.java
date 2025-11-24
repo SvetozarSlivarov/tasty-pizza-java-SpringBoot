@@ -1,16 +1,18 @@
 package bg.svetozar.tastypizza.service;
 
+import bg.svetozar.tastypizza.exception.IngredientNotFoundException;
 import bg.svetozar.tastypizza.model.dto.pizza.PizzaDto;
 import bg.svetozar.tastypizza.model.dto.pizza.PizzaRequest;
 import bg.svetozar.tastypizza.model.dto.pizza.PizzaVariantRequest;
-import bg.svetozar.tastypizza.model.entity.Pizza;
-import bg.svetozar.tastypizza.model.entity.PizzaVariant;
-import bg.svetozar.tastypizza.model.entity.Product;
+import bg.svetozar.tastypizza.model.dto.pizzaAllowedIngredient.PizzaAllowedIngredientRequest;
+import bg.svetozar.tastypizza.model.dto.pizzaIngredient.PizzaIngredientRequest;
+import bg.svetozar.tastypizza.model.entity.*;
 import bg.svetozar.tastypizza.model.enums.ProductType;
 import bg.svetozar.tastypizza.model.enums.PizzaSize;
 import bg.svetozar.tastypizza.model.enums.DoughType;
 import bg.svetozar.tastypizza.model.enums.SpicyLevel;
 import bg.svetozar.tastypizza.model.mapper.PizzaMapper;
+import bg.svetozar.tastypizza.repository.IngredientRepository;
 import bg.svetozar.tastypizza.repository.PizzaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,19 +28,21 @@ public class PizzaService {
 
     private final PizzaRepository pizzaRepository;
     private final ProductService productService;
+    private final IngredientRepository ingredientRepository;
 
 
 
-    public List<PizzaDto> getAll(boolean withVariants) {
 
-        List<Pizza> pizzas = withVariants
+    public List<PizzaDto> getAll(boolean fullView) {
+
+        List<Pizza> pizzas = fullView
                 ? pizzaRepository.findAllFull()
                 : pizzaRepository.findAllLight();
 
         return pizzas.stream()
-                .map(p -> withVariants
+                .map(p -> fullView
                         ? PizzaMapper.toPizzaDto(p)
-                        : PizzaMapper.toPizzaDtoWithoutVariants(p))
+                        : PizzaMapper.toPizzaDtoWithoutFullData(p))
                 .toList();
     }
     public PizzaDto getById(Long id) {
@@ -65,9 +69,18 @@ public class PizzaService {
                         ? SpicyLevel.valueOf(request.spicyLevel())
                         : null)
                 .build();
-
+        
         List<PizzaVariant> variants = mapVariantsFromRequest(request.variants(), pizza);
         pizza.setVariants(variants);
+
+
+        List<PizzaIngredient> ingredients = mapIngredientsFromRequest(request.ingredients(), pizza);
+        pizza.setIngredients(ingredients);
+
+
+        List<PizzaAllowedIngredient> allowedIngredients =
+                mapAllowedIngredientsFromRequest(request.allowedIngredients(), pizza);
+        pizza.setAllowedIngredients(allowedIngredients);
 
         Pizza saved = pizzaRepository.save(pizza);
         return PizzaMapper.toPizzaDto(saved);
@@ -88,9 +101,22 @@ public class PizzaService {
                 ? SpicyLevel.valueOf(request.spicyLevel())
                 : null);
 
+        // variants
         existing.getVariants().clear();
         List<PizzaVariant> variants = mapVariantsFromRequest(request.variants(), existing);
         existing.getVariants().addAll(variants);
+
+        // ingredients
+        existing.getIngredients().clear();
+        List<PizzaIngredient> ingredients = mapIngredientsFromRequest(request.ingredients(), existing);
+        existing.getIngredients().addAll(ingredients);
+
+        // allowedIngredients
+        existing.getAllowedIngredients().clear();
+        List<PizzaAllowedIngredient> allowedIngredients =
+                mapAllowedIngredientsFromRequest(request.allowedIngredients(), existing);
+        existing.getAllowedIngredients().addAll(allowedIngredients);
+
         return PizzaMapper.toPizzaDto(existing);
     }
 
@@ -120,6 +146,46 @@ public class PizzaService {
                         .dough(DoughType.valueOf(req.dough()))
                         .extraPrice(new BigDecimal(req.extraPrice()))
                         .build())
+                .toList();
+    }
+    private List<PizzaIngredient> mapIngredientsFromRequest(List<PizzaIngredientRequest> requests, Pizza pizza) {
+        if (requests == null) {
+            return List.of();
+        }
+
+        return requests.stream()
+                .map(req -> {
+                    Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(req.ingredientId())
+                            .orElseThrow(() -> new IngredientNotFoundException(req.ingredientId()));
+
+                    return PizzaIngredient.builder()
+                            .pizza(pizza)
+                            .ingredient(ingredient)
+                            .removable(req.removable())
+                            .build();
+                })
+                .toList();
+    }
+
+    private List<PizzaAllowedIngredient> mapAllowedIngredientsFromRequest(
+            List<PizzaAllowedIngredientRequest> requests,
+            Pizza pizza
+    ) {
+        if (requests == null) {
+            return List.of();
+        }
+
+        return requests.stream()
+                .map(req -> {
+                    Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(req.ingredientId())
+                            .orElseThrow(() -> new IngredientNotFoundException(req.ingredientId()));
+
+                    return PizzaAllowedIngredient.builder()
+                            .pizza(pizza)
+                            .ingredient(ingredient)
+                            .extraPrice(new BigDecimal(req.extraPrice()))
+                            .build();
+                })
                 .toList();
     }
 }

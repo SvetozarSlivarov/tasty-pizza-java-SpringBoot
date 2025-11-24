@@ -1,6 +1,8 @@
 package bg.svetozar.tastypizza.model.dto.pizza;
 
-import java.math.BigDecimal;
+import bg.svetozar.tastypizza.model.dto.pizzaAllowedIngredient.PizzaAllowedIngredientDto;
+import bg.svetozar.tastypizza.model.dto.pizzaIngredient.PizzaIngredientDto;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -13,6 +15,8 @@ public record PizzaDto(
         LocalDateTime deletedAt,
         String spicyLevel,
         String imageUrl,
-        List<PizzaVariantDto> variants
+        List<PizzaVariantDto> variants,
+        List<PizzaIngredientDto> ingredients,
+        List<PizzaAllowedIngredientDto> allowedIngredients
 ) {
 }

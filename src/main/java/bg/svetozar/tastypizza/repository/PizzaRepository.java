@@ -14,33 +14,36 @@ public interface PizzaRepository extends JpaRepository<Pizza, Long> {
     @Query("""
         SELECT p FROM Pizza p
         JOIN FETCH p.product prod
-        WHERE prod.deleted = false
-    """)
-    List<Pizza> findAllLight();
-
-
-    @Query("""
-        SELECT DISTINCT p FROM Pizza p
-        JOIN FETCH p.product prod
-        LEFT JOIN FETCH p.variants v
-        WHERE prod.deleted = false
-    """)
-    List<Pizza> findAllFull();
-
-    @Query("""
-        SELECT p FROM Pizza p
-        JOIN FETCH p.product prod
         WHERE prod.deleted = false AND p.id = :id
     """)
     Optional<Pizza> findByIdLight(long id);
 
     @Query("""
-        SELECT DISTINCT p FROM Pizza p
-        JOIN FETCH p.product prod
-        LEFT JOIN FETCH p.variants v
-        WHERE prod.deleted = false AND p.id = :id
-    """)
-    Optional<Pizza> findByIdFull(long id);
+    SELECT p FROM Pizza p
+    JOIN FETCH p.product pr
+    LEFT JOIN FETCH p.variants v
+    LEFT JOIN FETCH p.ingredients i
+    LEFT JOIN FETCH p.allowedIngredients ai
+    WHERE pr.deleted = false
+""")
+    List<Pizza> findAllFull();
+
+    @Query("""
+    SELECT p FROM Pizza p
+    JOIN FETCH p.product pr
+    WHERE pr.deleted = false
+""")
+    List<Pizza> findAllLight();
+
+    @Query("""
+    SELECT p FROM Pizza p
+    JOIN FETCH p.product pr
+    LEFT JOIN FETCH p.variants v
+    LEFT JOIN FETCH p.ingredients i
+    LEFT JOIN FETCH p.allowedIngredients ai
+    WHERE p.id = :id
+""")
+    Optional<Pizza> findByIdFull(Long id);
 
 
 }
