@@ -4,6 +4,7 @@ package bg.svetozar.tastypizza.controller;
 import bg.svetozar.tastypizza.model.dto.drink.DrinkDto;
 import bg.svetozar.tastypizza.model.dto.drink.DrinkRequest;
 import bg.svetozar.tastypizza.service.DrinkService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,15 +30,16 @@ public class DrinkController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
-    public DrinkDto create(@RequestBody DrinkRequest request) {
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public DrinkDto create(@Valid @RequestBody DrinkRequest request) {
         return drinkService.create(request);
     }
 
     @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public DrinkDto update(@PathVariable Long id, @RequestBody DrinkRequest request) {
+    public DrinkDto update(@PathVariable Long id, @Valid @RequestBody DrinkRequest request) {
         return drinkService.update(id, request);
     }
 

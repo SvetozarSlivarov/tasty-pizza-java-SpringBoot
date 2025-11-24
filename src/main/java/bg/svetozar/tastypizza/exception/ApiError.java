@@ -1,6 +1,7 @@
 package bg.svetozar.tastypizza.exception;
 
 import java.time.Instant;
+import java.util.Map;
 
 public record ApiError(
         Instant timestamp,
@@ -8,5 +9,6 @@ public record ApiError(
         String error,
         String message,
         String path,
-        String code
+        String code,
+        Map<String, String> validationErrors
 ) {}
