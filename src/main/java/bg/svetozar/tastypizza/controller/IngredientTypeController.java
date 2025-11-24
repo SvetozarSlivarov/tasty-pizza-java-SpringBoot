@@ -1,8 +1,8 @@
 package bg.svetozar.tastypizza.controller;
 
 
+import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeRequest;
 import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeDto;
-import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeResponse;
 import bg.svetozar.tastypizza.model.mapper.IngredientTypeMapper;
 import bg.svetozar.tastypizza.service.IngredientTypeService;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class IngredientTypeController {
     private final IngredientTypeMapper ingredientTypeMapper;
 
     @GetMapping
-    public List<IngredientTypeResponse> getAll() {
+    public List<IngredientTypeDto> getAll() {
         return ingredientTypeService.findAll()
                 .stream()
                 .map(ingredientTypeMapper::toResponse)
@@ -29,14 +29,14 @@ public class IngredientTypeController {
     }
 
     @GetMapping("/{id}")
-    public IngredientTypeResponse getById(@PathVariable Long id) {
+    public IngredientTypeDto getById(@PathVariable Long id) {
         return ingredientTypeMapper.toResponse(ingredientTypeService.findById(id));
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
-    public IngredientTypeResponse save(@RequestBody IngredientTypeDto dto) {
+    public IngredientTypeDto save(@RequestBody IngredientTypeRequest dto) {
         return ingredientTypeMapper.toResponse(
                 ingredientTypeService.create(dto.name())
         );
@@ -44,7 +44,7 @@ public class IngredientTypeController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public IngredientTypeResponse update(@PathVariable Long id, @RequestBody IngredientTypeDto dto) {
+    public IngredientTypeDto update(@PathVariable Long id, @RequestBody IngredientTypeRequest dto) {
         return ingredientTypeMapper.toResponse(
                 ingredientTypeService.update(id, dto.name())
         );
@@ -60,7 +60,7 @@ public class IngredientTypeController {
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public void deleteByName(@RequestBody IngredientTypeDto dto) {
+    public void deleteByName(@RequestBody IngredientTypeRequest dto) {
         ingredientTypeService.deleteByName(dto.name());
     }
 }

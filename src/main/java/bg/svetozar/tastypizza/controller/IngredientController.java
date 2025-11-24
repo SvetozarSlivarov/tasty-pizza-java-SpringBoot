@@ -1,8 +1,8 @@
 package bg.svetozar.tastypizza.web;
 
+import bg.svetozar.tastypizza.model.dto.ingredient.IngredientRequest;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientDto;
-import bg.svetozar.tastypizza.model.dto.ingredient.IngredientResponse;
-import bg.svetozar.tastypizza.model.dto.ingredient.IngredientWithTypeResponse;
+import bg.svetozar.tastypizza.model.dto.ingredient.IngredientWithTypeDto;
 import bg.svetozar.tastypizza.service.IngredientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,43 +20,43 @@ public class IngredientController {
 
     // /ingredients?show=active|all|deleted
     @GetMapping
-    public ResponseEntity<List<IngredientResponse>> getAllBasic(
+    public ResponseEntity<List<IngredientDto>> getAllBasic(
             @RequestParam(name = "show", required = false) String show
     ) {
-        List<IngredientResponse> result = ingredientService.findAllBasic(show);
+        List<IngredientDto> result = ingredientService.findAllBasic(show);
         return ResponseEntity.ok(result);
     }
 
     // /ingredients/with-type?show=...
     @GetMapping("/with-type")
-    public ResponseEntity<List<IngredientWithTypeResponse>> getAllWithType(
+    public ResponseEntity<List<IngredientWithTypeDto>> getAllWithType(
             @RequestParam(name = "show", required = false) String show
     ) {
-        List<IngredientWithTypeResponse> result = ingredientService.findAllWithType(show);
+        List<IngredientWithTypeDto> result = ingredientService.findAllWithType(show);
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<IngredientWithTypeResponse> getOne(@PathVariable Long id) {
-        IngredientWithTypeResponse response = ingredientService.findOne(id);
+    public ResponseEntity<IngredientWithTypeDto> getOne(@PathVariable Long id) {
+        IngredientWithTypeDto response = ingredientService.findOne(id);
         return ResponseEntity.ok(response);
     }
 
 
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<IngredientWithTypeResponse> create(@RequestBody IngredientDto dto) {
-        IngredientWithTypeResponse response = ingredientService.create(dto);
+    public ResponseEntity<IngredientWithTypeDto> create(@RequestBody IngredientRequest dto) {
+        IngredientWithTypeDto response = ingredientService.create(dto);
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<IngredientWithTypeResponse> update(
+    public ResponseEntity<IngredientWithTypeDto> update(
             @PathVariable Long id,
-            @RequestBody IngredientDto dto
+            @RequestBody IngredientRequest dto
     ) {
-        IngredientWithTypeResponse response = ingredientService.update(id, dto);
+        IngredientWithTypeDto response = ingredientService.update(id, dto);
         return ResponseEntity.ok(response);
     }
 

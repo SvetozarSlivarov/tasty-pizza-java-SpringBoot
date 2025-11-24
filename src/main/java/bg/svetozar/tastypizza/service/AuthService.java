@@ -2,7 +2,7 @@ package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.InvalidCredentialsException;
 import bg.svetozar.tastypizza.exception.UsernameAlreadyTakenException;
-import bg.svetozar.tastypizza.model.dto.auth.AuthResponse;
+import bg.svetozar.tastypizza.model.dto.auth.AuthDto;
 import bg.svetozar.tastypizza.model.dto.auth.LoginRequest;
 import bg.svetozar.tastypizza.model.dto.auth.RegisterRequest;
 import bg.svetozar.tastypizza.model.entity.User;
@@ -26,7 +26,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    public AuthResponse register(RegisterRequest request) {
+    public AuthDto register(RegisterRequest request) {
 
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new UsernameAlreadyTakenException(request.getUsername());
@@ -42,10 +42,10 @@ public class AuthService {
         userRepository.save(user);
         CustomUserDetails userDetails = new CustomUserDetails(user);
         String token = jwtService.generateToken(userDetails);
-        return new AuthResponse(token, user.getUsername(), user.getRole().name());
+        return new AuthDto(token, user.getUsername(), user.getRole().name());
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public AuthDto login(LoginRequest request) {
 
         var authToken = new UsernamePasswordAuthenticationToken(
                 request.getUsername(),
@@ -60,7 +60,7 @@ public class AuthService {
 
             String token = jwtService.generateToken(userDetails);
 
-            return new AuthResponse(token, user.getUsername(), user.getRole().name());
+            return new AuthDto(token, user.getUsername(), user.getRole().name());
 
         } catch (AuthenticationException ex) {
             throw new InvalidCredentialsException();

@@ -1,14 +1,14 @@
 package bg.svetozar.tastypizza.model.mapper;
 
-import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeResponse;
+import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeDto;
 import bg.svetozar.tastypizza.model.entity.IngredientType;
 import org.springframework.stereotype.Component;
 
 @Component
 public class IngredientTypeMapper {
 
-    public IngredientTypeResponse toResponse(IngredientType entity) {
-        return new IngredientTypeResponse(
+    public IngredientTypeDto toResponse(IngredientType entity) {
+        return new IngredientTypeDto(
                 entity.getId(),
                 entity.getName()
         );

@@ -16,17 +16,10 @@ public final class PizzaMapper {
     private PizzaMapper() {
     }
 
-    /**
-     * Пълен DTO – използва се за детайлен view (GET /api/pizzas/{id}).
-     */
     public static PizzaDto toPizzaDto(Pizza pizza) {
         return map(pizza, true);
     }
 
-    /**
-     * Олекотен DTO – за списъци (GET /api/pizzas).
-     * Не включва variants / ingredients / allowedIngredients.
-     */
     public static PizzaDto toPizzaDtoWithoutFullData(Pizza pizza) {
         return map(pizza, false);
     }

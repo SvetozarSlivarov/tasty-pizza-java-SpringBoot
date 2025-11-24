@@ -1,8 +1,8 @@
 package bg.svetozar.tastypizza.service;
 
+import bg.svetozar.tastypizza.model.dto.ingredient.IngredientRequest;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientDto;
-import bg.svetozar.tastypizza.model.dto.ingredient.IngredientResponse;
-import bg.svetozar.tastypizza.model.dto.ingredient.IngredientWithTypeResponse;
+import bg.svetozar.tastypizza.model.dto.ingredient.IngredientWithTypeDto;
 import bg.svetozar.tastypizza.model.entity.Ingredient;
 import bg.svetozar.tastypizza.model.entity.IngredientType;
 import bg.svetozar.tastypizza.model.mapper.IngredientMapper;
@@ -27,12 +27,12 @@ public class IngredientService {
     private final IngredientMapper ingredientMapper;
 
 
-    public List<IngredientResponse> findAllBasic(String show) {
+    public List<IngredientDto> findAllBasic(String show) {
         List<Ingredient> ingredients = resolveListByShow(show);
         return ingredientMapper.toResponseList(ingredients);
     }
 
-    public List<IngredientWithTypeResponse> findAllWithType(String show) {
+    public List<IngredientWithTypeDto> findAllWithType(String show) {
         List<Ingredient> ingredients = resolveListByShow(show);
         return ingredientMapper.toWithTypeResponseList(ingredients);
     }
@@ -60,7 +60,7 @@ public class IngredientService {
     }
 
 
-    public IngredientWithTypeResponse findOne(Long id) {
+    public IngredientWithTypeDto findOne(Long id) {
         Ingredient ingredient;
 
         if (isAdmin()) {
@@ -74,7 +74,7 @@ public class IngredientService {
         return ingredientMapper.toWithTypeResponse(ingredient);
     }
 
-    public IngredientWithTypeResponse create(IngredientDto dto) {
+    public IngredientWithTypeDto create(IngredientRequest dto) {
         IngredientType type = ingredientTypeRepository.findById(dto.typeId())
                 .orElseThrow(() -> new IllegalArgumentException("IngredientType not found: " + dto.typeId()));
 
@@ -89,7 +89,7 @@ public class IngredientService {
         return ingredientMapper.toWithTypeResponse(ingredient);
     }
 
-    public IngredientWithTypeResponse update(Long id, IngredientDto dto) {
+    public IngredientWithTypeDto update(Long id, IngredientRequest dto) {
         Ingredient ingredient = ingredientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + id));
 

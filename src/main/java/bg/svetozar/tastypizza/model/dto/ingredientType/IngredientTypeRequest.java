@@ -1,6 +1,5 @@
 package bg.svetozar.tastypizza.model.dto.ingredientType;
 
-public record IngredientTypeResponse(
-        Long id,
+public record IngredientTypeRequest(
         String name
 ) {}

@@ -1,13 +1,13 @@
 package bg.svetozar.tastypizza.model.dto.ingredient;
 
-import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeResponse;
+import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeDto;
 
 import java.time.LocalDateTime;
 
-public record IngredientWithTypeResponse(
+public record IngredientWithTypeDto(
         Long id,
         String name,
-        IngredientTypeResponse type,
+        IngredientTypeDto type,
         boolean deleted,
         LocalDateTime deletedAt
 ) {}

@@ -69,7 +69,7 @@ public class PizzaService {
                         ? SpicyLevel.valueOf(request.spicyLevel())
                         : null)
                 .build();
-        
+
         List<PizzaVariant> variants = mapVariantsFromRequest(request.variants(), pizza);
         pizza.setVariants(variants);
 
