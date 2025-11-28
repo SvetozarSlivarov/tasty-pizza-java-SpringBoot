@@ -3,9 +3,12 @@ package bg.svetozar.tastypizza.controller;
 import bg.svetozar.tastypizza.model.dto.pizzaAllowedIngredient.PizzaAllowedIngredientRequest;
 import bg.svetozar.tastypizza.model.dto.pizzaAllowedIngredient.PizzaAllowedIngredientDto;
 import bg.svetozar.tastypizza.service.PizzaAllowedIngredientService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,12 +16,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/pizzas/{pizzaId}/allowed-ingredients")
 @RequiredArgsConstructor
+@Validated
 public class PizzaAllowedIngredientController {
 
     private final PizzaAllowedIngredientService allowedIngredientService;
 
     @GetMapping
-    public List<PizzaAllowedIngredientDto> getByPizza(@PathVariable Long pizzaId) {
+    public List<PizzaAllowedIngredientDto> getByPizza(
+            @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId
+    ) {
         return allowedIngredientService.getByPizzaId(pizzaId);
     }
 
@@ -26,8 +32,8 @@ public class PizzaAllowedIngredientController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public PizzaAllowedIngredientDto add(
-            @PathVariable Long pizzaId,
-            @RequestBody PizzaAllowedIngredientRequest request
+            @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId,
+            @Valid @RequestBody PizzaAllowedIngredientRequest request
     ) {
         return allowedIngredientService.addAllowedIngredient(pizzaId, request);
     }
@@ -35,9 +41,9 @@ public class PizzaAllowedIngredientController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public PizzaAllowedIngredientDto update(
-            @PathVariable Long pizzaId,
-            @PathVariable Long id,
-            @RequestBody PizzaAllowedIngredientRequest request
+            @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId,
+            @PathVariable @Positive(message = "id must be positive") Long id,
+            @Valid @RequestBody PizzaAllowedIngredientRequest request
     ) {
         return allowedIngredientService.update(id, request);
     }
@@ -46,8 +52,8 @@ public class PizzaAllowedIngredientController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void delete(
-            @PathVariable Long pizzaId,
-            @PathVariable Long id
+            @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId,
+            @PathVariable @Positive(message = "id must be positive") Long id
     ) {
         allowedIngredientService.delete(id);
     }
