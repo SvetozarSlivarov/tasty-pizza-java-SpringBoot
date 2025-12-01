@@ -13,6 +13,8 @@ import bg.svetozar.tastypizza.model.enums.DoughType;
 import bg.svetozar.tastypizza.model.enums.SpicyLevel;
 import bg.svetozar.tastypizza.model.mapper.PizzaMapper;
 import bg.svetozar.tastypizza.repository.IngredientRepository;
+import bg.svetozar.tastypizza.repository.PizzaAllowedIngredientRepository;
+import bg.svetozar.tastypizza.repository.PizzaIngredientRepository;
 import bg.svetozar.tastypizza.repository.PizzaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,15 +31,30 @@ public class PizzaService {
     private final PizzaRepository pizzaRepository;
     private final ProductService productService;
     private final IngredientRepository ingredientRepository;
+    private final PizzaIngredientRepository pizzaIngredientRepository;
+    private final PizzaAllowedIngredientRepository pizzaAllowedIngredientRepository;
 
 
 
-
+    @Transactional(readOnly = true)
     public List<PizzaDto> getAll(boolean fullView) {
 
         List<Pizza> pizzas = fullView
                 ? pizzaRepository.findAllFull()
                 : pizzaRepository.findAllLight();
+
+        if (fullView) {
+            pizzas.forEach(pizza -> {
+                List<PizzaIngredient> ingredients =
+                        pizzaIngredientRepository.findAllByPizzaWithIngredient(pizza);
+
+                List<PizzaAllowedIngredient> allowedIngredients =
+                        pizzaAllowedIngredientRepository.findAllByPizzaWithIngredient(pizza);
+
+                pizza.setIngredients(ingredients);
+                pizza.setAllowedIngredients(allowedIngredients);
+            });
+        }
 
         return pizzas.stream()
                 .map(p -> fullView
@@ -45,9 +62,20 @@ public class PizzaService {
                         : PizzaMapper.toPizzaDtoWithoutFullData(p))
                 .toList();
     }
+
+    @Transactional(readOnly = true)
     public PizzaDto getById(Long id) {
         Pizza pizza = pizzaRepository.findByIdFull(id)
-                .orElseThrow(() -> new IllegalArgumentException("Pizza not found: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("Pizza not found"));
+
+        List<PizzaIngredient> ingredients =
+                pizzaIngredientRepository.findAllByPizzaWithIngredient(pizza);
+
+        List<PizzaAllowedIngredient> allowedIngredients =
+                pizzaAllowedIngredientRepository.findAllByPizzaWithIngredient(pizza);
+
+        pizza.setIngredients(ingredients);
+        pizza.setAllowedIngredients(allowedIngredients);
 
         return PizzaMapper.toPizzaDto(pizza);
     }

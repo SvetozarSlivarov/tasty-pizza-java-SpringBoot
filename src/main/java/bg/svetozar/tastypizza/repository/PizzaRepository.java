@@ -23,8 +23,6 @@ public interface PizzaRepository extends JpaRepository<Pizza, Long> {
     SELECT p FROM Pizza p
     JOIN FETCH p.product pr
     LEFT JOIN FETCH p.variants v
-    LEFT JOIN FETCH p.ingredients i
-    LEFT JOIN FETCH p.allowedIngredients ai
     WHERE pr.deleted = false
 """)
     List<Pizza> findAllFull();
@@ -40,8 +38,6 @@ public interface PizzaRepository extends JpaRepository<Pizza, Long> {
     SELECT p FROM Pizza p
     JOIN FETCH p.product pr
     LEFT JOIN FETCH p.variants v
-    LEFT JOIN FETCH p.ingredients i
-    LEFT JOIN FETCH p.allowedIngredients ai
     WHERE p.id = :id
 """)
     Optional<Pizza> findByIdFull(Long id);
