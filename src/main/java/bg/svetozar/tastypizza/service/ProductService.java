@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final CloudinaryService cloudinaryService;
+
 
     public Product getByIdOrThrow(Long id) {
         return productRepository.findById(id)
@@ -32,9 +34,56 @@ public class ProductService {
                 .orElseThrow(() -> new IllegalArgumentException("Product type not found for product: " + id));
     }
 
-    public Product createProduct(Product product) {
+    public Product createProduct(
+            String name,
+            String description,
+            BigDecimal basePrice,
+            ProductType type,
+            String imageBase64
+    ) {
+        String imageUrl = cloudinaryService.uploadBase64Image(imageBase64);
+
+        Product product = Product.builder()
+                .name(name)
+                .description(description)
+                .basePrice(basePrice)
+                .type(type)
+                .imageUrl(imageUrl)
+                .createdAt(LocalDateTime.now())
+                .deleted(false)
+                .build();
+
         return productRepository.save(product);
     }
+    public Product updateProduct(
+            Long id,
+            String name,
+            String description,
+            BigDecimal basePrice,
+            ProductType type,
+            String newImageBase64
+    ) {
+        Product product = getByIdOrThrow(id);
+
+        product.setName(name);
+        product.setDescription(description);
+        product.setBasePrice(basePrice);
+        product.setType(type);
+
+        if (newImageBase64 != null && !newImageBase64.isBlank()) {
+            String oldUrl = product.getImageUrl();
+            String newUrl = cloudinaryService.uploadBase64Image(newImageBase64);
+            product.setImageUrl(newUrl);
+
+            if (oldUrl != null && !oldUrl.isBlank()) {
+                cloudinaryService.deleteByUrl(oldUrl);
+            }
+        }
+
+        return product;
+    }
+
+
 
     public void softDelete(Long id) {
         Product product = getByIdOrThrow(id);

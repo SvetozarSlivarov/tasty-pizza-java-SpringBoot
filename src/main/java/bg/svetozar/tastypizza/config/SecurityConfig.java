@@ -37,9 +37,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/pizzas/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/drinks/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/ingredient-type/**").permitAll()
+                        .requestMatchers("/api/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

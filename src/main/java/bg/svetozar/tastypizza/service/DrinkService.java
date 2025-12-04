@@ -23,46 +23,54 @@ public class DrinkService {
     private final ProductService productService;
 
     public List<DrinkDto> getAll() {
-        return drinkRepository.findAllLight().stream()
+        return drinkRepository.findAll().stream()
                 .map(DrinkMapper::toDrinkDto)
                 .toList();
     }
 
     public DrinkDto getById(Long id) {
-        Drink drink = drinkRepository.findByIdLight(id)
+        Drink drink = drinkRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Drink not found: " + id));
 
         return DrinkMapper.toDrinkDto(drink);
     }
 
+    // ---------- CREATE ----------
     public DrinkDto create(DrinkRequest request) {
-        Product product = Product.builder()
-                .name(request.name())
-                .description(request.description())
-                .basePrice(new BigDecimal(request.basePrice()))
-                .imageUrl(request.imageUrl())
-                .type(ProductType.DRINK)
-                .build();
-
-        product = productService.createProduct(product);
+        Product product = productService.createProduct(
+                request.name(),
+                request.description(),
+                new BigDecimal(request.basePrice()),
+                ProductType.DRINK,
+                request.imageBase64()
+        );
 
         Drink drink = Drink.builder()
                 .product(product)
                 .build();
 
-        Drink saved = drinkRepository.save(drink);
-        return DrinkMapper.toDrinkDto(saved);
+        drinkRepository.save(drink);
+
+        return DrinkMapper.toDrinkDto(drink);
     }
 
+    // ---------- UPDATE ----------
     public DrinkDto update(Long id, DrinkRequest request) {
-        Drink drink = drinkRepository.findByIdLight(id)
+        Drink drink = drinkRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Drink not found: " + id));
 
-        Product product = drink.getProduct();
-        product.setName(request.name());
-        product.setDescription(request.description());
-        product.setBasePrice(new BigDecimal(request.basePrice()));
-        product.setImageUrl(request.imageUrl());
+        Product updatedProduct = productService.updateProduct(
+                drink.getProduct().getId(),
+                request.name(),
+                request.description(),
+                new BigDecimal(request.basePrice()),
+                ProductType.DRINK,
+                request.imageBase64()
+        );
+
+        drink.setProduct(updatedProduct);
+
+        drinkRepository.save(drink);
 
         return DrinkMapper.toDrinkDto(drink);
     }

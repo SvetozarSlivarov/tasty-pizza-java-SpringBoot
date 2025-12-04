@@ -34,8 +34,6 @@ public class PizzaService {
     private final PizzaIngredientRepository pizzaIngredientRepository;
     private final PizzaAllowedIngredientRepository pizzaAllowedIngredientRepository;
 
-
-
     @Transactional(readOnly = true)
     public List<PizzaDto> getAll(boolean fullView) {
 
@@ -80,16 +78,16 @@ public class PizzaService {
         return PizzaMapper.toPizzaDto(pizza);
     }
 
+    // ----------------- CREATE -----------------
     public PizzaDto create(PizzaRequest request) {
-        Product product = Product.builder()
-                .name(request.name())
-                .description(request.description())
-                .basePrice(new BigDecimal(request.basePrice()))
-                .imageUrl(request.imageUrl())
-                .type(ProductType.PIZZA)
-                .build();
 
-        product = productService.createProduct(product);
+        Product product = productService.createProduct(
+                request.name(),
+                request.description(),
+                new BigDecimal(request.basePrice()),
+                ProductType.PIZZA,
+                request.imageBase64()
+        );
 
         Pizza pizza = Pizza.builder()
                 .product(product)
@@ -98,14 +96,15 @@ public class PizzaService {
                         : null)
                 .build();
 
+        // variants
         List<PizzaVariant> variants = mapVariantsFromRequest(request.variants(), pizza);
         pizza.setVariants(variants);
 
-
+        // ingredients
         List<PizzaIngredient> ingredients = mapIngredientsFromRequest(request.ingredients(), pizza);
         pizza.setIngredients(ingredients);
 
-
+        // allowedIngredients
         List<PizzaAllowedIngredient> allowedIngredients =
                 mapAllowedIngredientsFromRequest(request.allowedIngredients(), pizza);
         pizza.setAllowedIngredients(allowedIngredients);
@@ -114,32 +113,38 @@ public class PizzaService {
         return PizzaMapper.toPizzaDto(saved);
     }
 
-
+    // ----------------- UPDATE -----------------
     public PizzaDto update(Long id, PizzaRequest request) {
         Pizza existing = pizzaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pizza not found: " + id));
 
-        Product product = existing.getProduct();
-        product.setName(request.name());
-        product.setDescription(request.description());
-        product.setBasePrice(new BigDecimal(request.basePrice()));
-        product.setImageUrl(request.imageUrl());
+        Product updatedProduct = productService.updateProduct(
+                existing.getProduct().getId(),
+                request.name(),
+                request.description(),
+                new BigDecimal(request.basePrice()),
+                ProductType.PIZZA,
+                request.imageBase64()
+        );
 
+        existing.setProduct(updatedProduct);
+
+        // 2) Spicy level
         existing.setSpicyLevel(request.spicyLevel() != null
                 ? SpicyLevel.valueOf(request.spicyLevel())
                 : null);
 
-        // variants
+        // 3) Variants
         existing.getVariants().clear();
         List<PizzaVariant> variants = mapVariantsFromRequest(request.variants(), existing);
         existing.getVariants().addAll(variants);
 
-        // ingredients
+        // 4) Ingredients
         existing.getIngredients().clear();
         List<PizzaIngredient> ingredients = mapIngredientsFromRequest(request.ingredients(), existing);
         existing.getIngredients().addAll(ingredients);
 
-        // allowedIngredients
+        // 5) Allowed ingredients
         existing.getAllowedIngredients().clear();
         List<PizzaAllowedIngredient> allowedIngredients =
                 mapAllowedIngredientsFromRequest(request.allowedIngredients(), existing);
@@ -148,19 +153,21 @@ public class PizzaService {
         return PizzaMapper.toPizzaDto(existing);
     }
 
-
     public void softDelete(Long id) {
         Pizza pizza = pizzaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pizza not found: " + id));
 
         productService.softDelete(pizza.getProduct().getId());
     }
+
     public void restoreDeletedPizza(Long id) {
         Pizza pizza = pizzaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pizza not found: " + id));
 
         productService.restoreDeletedProduct(pizza.getProduct().getId());
     }
+
+    // ----------------- Helpers -----------------
 
     private List<PizzaVariant> mapVariantsFromRequest(List<PizzaVariantRequest> requests, Pizza pizza) {
         if (requests == null) {
@@ -176,6 +183,7 @@ public class PizzaService {
                         .build())
                 .toList();
     }
+
     private List<PizzaIngredient> mapIngredientsFromRequest(List<PizzaIngredientRequest> requests, Pizza pizza) {
         if (requests == null) {
             return List.of();
@@ -183,7 +191,8 @@ public class PizzaService {
 
         return requests.stream()
                 .map(req -> {
-                    Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(req.ingredientId())
+                    Ingredient ingredient = ingredientRepository
+                            .findByIdAndDeletedFalse(req.ingredientId())
                             .orElseThrow(() -> new IngredientNotFoundException(req.ingredientId()));
 
                     return PizzaIngredient.builder()
@@ -205,7 +214,8 @@ public class PizzaService {
 
         return requests.stream()
                 .map(req -> {
-                    Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(req.ingredientId())
+                    Ingredient ingredient = ingredientRepository
+                            .findByIdAndDeletedFalse(req.ingredientId())
                             .orElseThrow(() -> new IngredientNotFoundException(req.ingredientId()));
 
                     return PizzaAllowedIngredient.builder()

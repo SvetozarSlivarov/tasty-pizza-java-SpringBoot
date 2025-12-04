@@ -15,6 +15,5 @@ public record DrinkRequest(
         @Digits(integer = 6, fraction = 2, message = "Base price must have up to 6 digits and 2 decimals")
         String basePrice,
 
-        @Size(max = 1024, message = "Image URL must be at most 1024 characters")
-        String imageUrl
+        String imageBase64
 ) {}
