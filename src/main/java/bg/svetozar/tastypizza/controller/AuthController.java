@@ -2,6 +2,7 @@ package bg.svetozar.tastypizza.controller;
 
 import bg.svetozar.tastypizza.model.dto.auth.AuthDto;
 import bg.svetozar.tastypizza.model.dto.auth.LoginRequest;
+import bg.svetozar.tastypizza.model.dto.auth.RefreshTokenRequest;
 import bg.svetozar.tastypizza.model.dto.auth.RegisterRequest;
 import bg.svetozar.tastypizza.service.AuthService;
 import jakarta.validation.Valid;
@@ -24,5 +25,9 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthDto> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthDto> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refreshToken(request.getRefreshToken()));
     }
 }

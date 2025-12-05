@@ -1,12 +1,9 @@
 package bg.svetozar.tastypizza.security;
 
-import bg.svetozar.tastypizza.security.CustomUserDetails;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -17,12 +14,14 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
-
     @Value("${app.jwt.secret}")
     private String secret;
 
-    @Value("${app.jwt.expiration-ms}")
-    private long jwtExpirationMs;
+    @Value("${app.jwt.access-expiration-ms}")
+    private long accessExpirationMs;
+
+    @Value("${app.jwt.refresh-expiration-ms}")
+    private long refreshExpirationMs;
 
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
@@ -33,9 +32,8 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+    public <T> T extractClaim(String token, Function<Claims, T> resolver) {
+        return resolver.apply(extractAllClaims(token));
     }
 
     private Claims extractAllClaims(String token) {
@@ -46,26 +44,9 @@ public class JwtService {
                 .getBody();
     }
 
-    public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-
-        if (userDetails instanceof CustomUserDetails custom) {
-            claims.put("id", custom.getUser().getId());
-            claims.put("role", custom.getUser().getRole().name());
-        } else {
-            String role = userDetails.getAuthorities().stream()
-                    .findFirst()
-                    .map(GrantedAuthority::getAuthority)
-                    .orElse("ROLE_USER");
-            claims.put("role", role);
-        }
-
-        return generateToken(claims, userDetails.getUsername());
-    }
-
-    public String generateToken(Map<String, Object> extraClaims, String subject) {
+    private String buildToken(Map<String, Object> extraClaims, String subject, long expirationMs) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtExpirationMs);
+        Date expiry = new Date(now.getTime() + expirationMs);
 
         return Jwts.builder()
                 .setClaims(extraClaims)
@@ -76,16 +57,68 @@ public class JwtService {
                 .compact();
     }
 
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+    private Map<String, Object> buildCommonClaims(CustomUserDetails custom, String type) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("id", custom.getUser().getId());
+        claims.put("role", custom.getUser().getRole().name());
+        claims.put("ver", custom.getUser().getTokenVersion());
+        claims.put("type", type);
+        return claims;
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+    public String generateAccessToken(CustomUserDetails userDetails) {
+        return buildToken(
+                buildCommonClaims(userDetails, "access"),
+                userDetails.getUsername(),
+                accessExpirationMs
+        );
     }
 
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+    public String generateRefreshToken(CustomUserDetails userDetails) {
+        return buildToken(
+                buildCommonClaims(userDetails, "refresh"),
+                userDetails.getUsername(),
+                refreshExpirationMs
+        );
+    }
+
+    public boolean isAccessTokenValid(String token, CustomUserDetails userDetails) {
+        return isTokenValidInternal(token, userDetails, "access");
+    }
+
+    public boolean isRefreshTokenValid(String token, CustomUserDetails userDetails) {
+        return isTokenValidInternal(token, userDetails, "refresh");
+    }
+
+    private boolean isTokenValidInternal(String token, CustomUserDetails userDetails, String expectedType) {
+        String username;
+        Claims claims;
+        try {
+            claims = extractAllClaims(token);
+            username = claims.getSubject();
+        } catch (JwtException ex) {
+            return false;
+        }
+
+        if (!username.equals(userDetails.getUsername())) {
+            return false;
+        }
+
+        Date expiration = claims.getExpiration();
+        if (expiration.before(new Date())) {
+            return false;
+        }
+
+        String type = claims.get("type", String.class);
+        if (!expectedType.equals(type)) {
+            return false;
+        }
+
+        Integer tokenVersion = claims.get("ver", Integer.class);
+        if (tokenVersion == null) {
+            return false;
+        }
+
+        return tokenVersion == userDetails.getUser().getTokenVersion();
     }
 }

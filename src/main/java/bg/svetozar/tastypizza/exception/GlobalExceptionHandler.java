@@ -1,5 +1,6 @@
 package bg.svetozar.tastypizza.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -232,6 +233,25 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.badRequest().body(body);
+    }
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ApiError> handleUnauthorized(
+            UnauthorizedException ex,
+            HttpServletRequest request
+    ) {
+        String path = request.getRequestURI();
+
+        ApiError body = buildApiError(
+                HttpStatus.UNAUTHORIZED,
+                ex.getMessage(),
+                path,
+                ErrorCode.UNAUTHORIZED,
+                null
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(body);
     }
 
     @ExceptionHandler(Exception.class)

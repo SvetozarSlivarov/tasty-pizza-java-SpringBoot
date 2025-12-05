@@ -1,5 +1,6 @@
 package bg.svetozar.tastypizza.service;
 
+import bg.svetozar.tastypizza.exception.UnauthorizedException;
 import bg.svetozar.tastypizza.exception.UsernameAlreadyTakenException;
 import bg.svetozar.tastypizza.model.dto.user.UpdateUserRequest;
 import bg.svetozar.tastypizza.model.dto.user.UserDto;
@@ -20,11 +21,13 @@ public class UserService {
 
     private User getCurrentUserOrThrow() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new IllegalStateException("User must be authenticated");
+        if (auth == null || !auth.isAuthenticated() ||
+                "anonymousUser".equals(auth.getPrincipal())) {
+            throw new IllegalStateException("No authenticated user in security context");
         }
 
         String username = auth.getName();
+
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalStateException("User not found: " + username));
     }

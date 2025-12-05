@@ -26,4 +26,5 @@ public final class ErrorCode {
     // General
     public static final String BAD_REQUEST = "BAD_REQUEST";
     public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
+    public static final String UNAUTHORIZED = "UNAUTHORIZED";
 }
