@@ -2,41 +2,86 @@ package bg.svetozar.tastypizza.controller;
 
 import bg.svetozar.tastypizza.model.dto.order.*;
 import bg.svetozar.tastypizza.service.CartService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.Duration;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor
 public class CartController {
 
+    private static final String CART_TOKEN_COOKIE = "cart_token";
+
     private final CartService cartService;
 
+    private String ensureCartTokenCookie(String cartTokenFromCookie, HttpServletResponse response) {
+        if (cartTokenFromCookie != null && !cartTokenFromCookie.isBlank()) {
+            return cartTokenFromCookie;
+        }
+
+        String newToken = UUID.randomUUID().toString();
+
+        ResponseCookie cookie = ResponseCookie.from(CART_TOKEN_COOKIE, newToken)
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(Duration.ofDays(30))
+                .sameSite("Lax")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        return newToken;
+    }
+
     @GetMapping
-    public ResponseEntity<CartDto> getCart() {
-        CartDto cart = cartService.getCurrentCart();
+    public ResponseEntity<CartDto> getCart(
+            @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
+            HttpServletResponse response
+    ) {
+        String guestToken = ensureCartTokenCookie(cartToken, response);
+
+        CartDto cart = cartService.getCurrentCart(guestToken);
+
         return ResponseEntity.ok(cart);
     }
 
     @PostMapping("/items/drink")
     public ResponseEntity<CartDto> addDrinkToCart(
+            @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
+            HttpServletResponse response,
             @Valid @RequestBody AddDrinkToCartRequest request
     ) {
+        String guestToken = ensureCartTokenCookie(cartToken, response);
+
         CartDto cart = cartService.addDrinkToCart(
+                guestToken,
                 request.productId(),
                 request.quantity(),
                 request.note()
         );
+
         return ResponseEntity.ok(cart);
     }
 
     @PostMapping("/items/pizza")
     public ResponseEntity<CartDto> addPizzaToCart(
+            @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
+            HttpServletResponse response,
             @Valid @RequestBody AddPizzaToCartRequest request
     ) {
+        String guestToken = ensureCartTokenCookie(cartToken, response);
+
         CartDto cart = cartService.addPizzaToCart(
+                guestToken,
                 request.productId(),
                 request.variantId(),
                 request.quantity(),
@@ -44,56 +89,71 @@ public class CartController {
                 request.removeIngredientIds(),
                 request.addIngredientIds()
         );
+
         return ResponseEntity.ok(cart);
     }
-
     @PatchMapping("/items/{itemId}")
     public ResponseEntity<CartDto> updateCartItem(
+            @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
+            HttpServletResponse response,
             @PathVariable Long itemId,
             @Valid @RequestBody UpdateCartItemRequest request
     ) {
+        String guestToken = ensureCartTokenCookie(cartToken, response);
+
         CartDto cart = null;
 
         if (request.quantity() != null) {
-            cart = cartService.updateQuantity(itemId, request.quantity());
+            cart = cartService.updateQuantity(guestToken, itemId, request.quantity());
         }
         if (request.note() != null) {
-            cart = cartService.updateNote(itemId, request.note());
+            cart = cartService.updateNote(guestToken, itemId, request.note());
         }
         if (request.variantId() != null) {
-            cart = cartService.updateVariant(itemId, request.variantId());
+            cart = cartService.updateVariant(guestToken, itemId, request.variantId());
         }
         if (request.removeIngredientIds() != null || request.addIngredientIds() != null) {
             cart = cartService.updatePizzaCustomizations(
+                    guestToken,
                     itemId,
                     request.removeIngredientIds(),
                     request.addIngredientIds()
             );
         }
-
         if (cart == null) {
-            cart = cartService.getCurrentCart();
+            cart = cartService.getCurrentCart(guestToken);
         }
 
         return ResponseEntity.ok(cart);
     }
 
     @DeleteMapping("/items/{itemId}")
-    public ResponseEntity<CartDto> removeCartItem(
+    public ResponseEntity<CartDto> removeItem(
+            @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
+            HttpServletResponse response,
             @PathVariable Long itemId
     ) {
-        CartDto cart = cartService.removeItem(itemId);
+        String guestToken = ensureCartTokenCookie(cartToken, response);
+
+        CartDto cart = cartService.removeItem(guestToken, itemId);
+
         return ResponseEntity.ok(cart);
     }
 
     @PostMapping("/checkout")
     public ResponseEntity<CartDto> checkout(
+            @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
+            HttpServletResponse response,
             @Valid @RequestBody CheckoutRequest request
     ) {
+        String guestToken = ensureCartTokenCookie(cartToken, response);
+
         CartDto cart = cartService.checkout(
+                guestToken,
                 request.phone(),
                 request.address()
         );
+
         return ResponseEntity.ok(cart);
     }
 }

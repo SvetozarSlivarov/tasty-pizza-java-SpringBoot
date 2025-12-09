@@ -45,12 +45,14 @@ public class DrinkController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void delete(@PathVariable Long id) {
         drinkService.softDelete(id);
     }
 
     @PostMapping("/{id}/restore")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void restore(@PathVariable Long id) {
         drinkService.restoreDeletedDrink(id);
     }

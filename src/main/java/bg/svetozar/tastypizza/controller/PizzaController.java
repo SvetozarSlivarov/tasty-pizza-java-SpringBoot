@@ -55,6 +55,7 @@ public class PizzaController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void delete(
             @PathVariable @Positive(message = "id must be positive") Long id
     ) {
@@ -63,6 +64,7 @@ public class PizzaController {
 
     @PostMapping("/{id}/restore")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void restore(
             @PathVariable @Positive(message = "id must be positive") Long id
     ) {

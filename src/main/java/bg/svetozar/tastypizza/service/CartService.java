@@ -30,21 +30,21 @@ public class CartService {
     private final OrderItemCustomizationRepository orderItemCustomizationRepository;
     private final IngredientRepository ingredientRepository;
     private final PizzaRepository pizzaRepository;
-    private final PizzaIngredientRepository pizzaIngredientRepository;
-    private final PizzaAllowedIngredientRepository pizzaAllowedIngredientRepository;
 
-    private User getCurrentUserOrThrow() {
+
+
+    private User getCurrentUserOrNull() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new IllegalStateException("User must be authenticated to use cart");
+
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return null;
         }
 
         String username = auth.getName();
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("User not found: " + username));
+        return userRepository.findByUsername(username).orElse(null);
     }
 
-    private Order getOrCreateCart(User user) {
+    private Order getOrCreateUserCart(User user) {
         return orderRepository.findFirstByUserAndStatusOrderByIdDesc(user, OrderStatus.CART)
                 .orElseGet(() -> {
                     Order order = Order.builder()
@@ -56,6 +56,24 @@ public class CartService {
                     return orderRepository.save(order);
                 });
     }
+
+    private Order getOrCreateGuestCart(String guestToken) {
+        return orderRepository.findFirstByGuestTokenAndStatusOrderByIdDesc(guestToken, OrderStatus.CART)
+                .orElseGet(() -> createGuestCart(guestToken));
+    }
+
+    private Order createGuestCart(String guestToken) {
+        Order order = Order.builder()
+                .user(null)
+                .guestToken(guestToken)
+                .status(OrderStatus.CART)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        return orderRepository.save(order);
+    }
+
     private void applyPizzaCustomizations(OrderItem item,
                                           Pizza pizza,
                                           List<Long> removeIngredientIds,
@@ -137,19 +155,33 @@ public class CartService {
         orderItemCustomizationRepository.saveAll(item.getCustomizations());
     }
 
-    public CartDto getCurrentCart() {
-        User user = getCurrentUserOrThrow();
-        Order cart = getOrCreateCart(user);
-        return OrderMapper.toCartDto(cart);
+
+    public CartDto getCurrentCart(String guestToken) {
+        User user = getCurrentUserOrNull();
+        Order order;
+
+        if (user != null) {
+            order = getOrCreateUserCart(user);
+        } else {
+            order = getOrCreateGuestCart(guestToken);
+        }
+
+        return OrderMapper.toCartDto(order);
     }
 
-    public CartDto addDrinkToCart(Long drinkProductId, int quantity, String note) {
+    public CartDto addDrinkToCart(String guestToken, Long drinkProductId, int quantity, String note) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("Quantity must be positive");
         }
 
-        User user = getCurrentUserOrThrow();
-        Order cart = getOrCreateCart(user);
+        User user = getCurrentUserOrNull();
+        Order order;
+
+        if (user != null) {
+            order = getOrCreateUserCart(user);
+        } else {
+            order = getOrCreateGuestCart(guestToken);
+        }
 
         Product product = productRepository.findById(drinkProductId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found: " + drinkProductId));
@@ -161,7 +193,7 @@ public class CartService {
         BigDecimal unitPrice = product.getBasePrice();
 
         OrderItem item = OrderItem.builder()
-                .order(cart)
+                .order(order)
                 .product(product)
                 .quantity(quantity)
                 .unitPrice(unitPrice)
@@ -169,13 +201,14 @@ public class CartService {
                 .build();
 
         orderItemRepository.save(item);
-        cart.getItems().add(item);
-        cart.setUpdatedAt(LocalDateTime.now());
+        order.getItems().add(item);
+        order.setUpdatedAt(LocalDateTime.now());
 
-        return OrderMapper.toCartDto(cart);
+        return OrderMapper.toCartDto(order);
     }
 
-    public CartDto addPizzaToCart(Long pizzaProductId,
+    public CartDto addPizzaToCart(String guestToken,
+                                  Long pizzaProductId,
                                   Long variantId,
                                   int quantity,
                                   String note,
@@ -185,8 +218,14 @@ public class CartService {
             throw new IllegalArgumentException("Quantity must be positive");
         }
 
-        User user = getCurrentUserOrThrow();
-        Order cart = getOrCreateCart(user);
+        User user = getCurrentUserOrNull();
+        Order order;
+
+        if (user != null) {
+            order = getOrCreateUserCart(user);
+        } else {
+            order = getOrCreateGuestCart(guestToken);
+        }
 
         Product product = productRepository.findById(pizzaProductId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found: " + pizzaProductId));
@@ -209,7 +248,7 @@ public class CartService {
                 .add(variant.getExtraPrice());
 
         OrderItem item = OrderItem.builder()
-                .order(cart)
+                .order(order)
                 .product(product)
                 .pizzaVariant(variant)
                 .quantity(quantity)
@@ -221,43 +260,56 @@ public class CartService {
 
         applyPizzaCustomizations(item, pizza, removeIngredientIds, addIngredientIds);
 
-        cart.getItems().add(item);
-        cart.setUpdatedAt(LocalDateTime.now());
+        order.getItems().add(item);
+        order.setUpdatedAt(LocalDateTime.now());
 
-        return OrderMapper.toCartDto(cart);
+        return OrderMapper.toCartDto(order);
     }
 
-    public CartDto updateQuantity(Long orderItemId, int quantity) {
+    private void ensureCanModifyOrder(Order order, User currentUser, String guestToken) {
+        if (currentUser != null) {
+            if (order.getUser() == null || !order.getUser().getId().equals(currentUser.getId())) {
+                throw new IllegalStateException("Cannot modify order from different user");
+            }
+        } else {
+            if (order.getUser() != null) {
+                throw new IllegalStateException("Cannot modify user cart as guest");
+            }
+            if (guestToken == null || !guestToken.equals(order.getGuestToken())) {
+                throw new IllegalStateException("Cannot modify different guest cart");
+            }
+        }
+    }
+
+    public CartDto updateQuantity(String guestToken, Long orderItemId, int quantity) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("Quantity must be positive");
         }
 
-        User user = getCurrentUserOrThrow();
-
-        OrderItem item = orderItemRepository.findById(orderItemId)
-                .orElseThrow(() -> new IllegalArgumentException("Order item not found: " + orderItemId));
-
-        if (!item.getOrder().getUser().getId().equals(user.getId())) {
-            throw new IllegalStateException("Cannot modify item from different user");
-        }
-
-        item.setQuantity(quantity);
-        item.getOrder().setUpdatedAt(LocalDateTime.now());
-
-        return OrderMapper.toCartDto(item.getOrder());
-    }
-
-    public CartDto removeItem(Long orderItemId) {
-        User user = getCurrentUserOrThrow();
+        User user = getCurrentUserOrNull();
 
         OrderItem item = orderItemRepository.findById(orderItemId)
                 .orElseThrow(() -> new IllegalArgumentException("Order item not found: " + orderItemId));
 
         Order order = item.getOrder();
 
-        if (!order.getUser().getId().equals(user.getId())) {
-            throw new IllegalStateException("Cannot delete item from different user");
-        }
+        ensureCanModifyOrder(order, user, guestToken);
+
+        item.setQuantity(quantity);
+        order.setUpdatedAt(LocalDateTime.now());
+
+        return OrderMapper.toCartDto(order);
+    }
+
+    public CartDto removeItem(String guestToken, Long orderItemId) {
+        User user = getCurrentUserOrNull();
+
+        OrderItem item = orderItemRepository.findById(orderItemId)
+                .orElseThrow(() -> new IllegalArgumentException("Order item not found: " + orderItemId));
+
+        Order order = item.getOrder();
+
+        ensureCanModifyOrder(order, user, guestToken);
 
         order.getItems().remove(item);
         orderItemRepository.delete(item);
@@ -267,11 +319,21 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
-    public CartDto checkout(String phone, String address) {
-        User user = getCurrentUserOrThrow();
-        Order cart = getOrCreateCart(user);
 
-        if (cart.getItems().isEmpty()) {
+    public CartDto checkout(String guestToken, String phone, String address) {
+        User user = getCurrentUserOrNull();
+        Order cart;
+
+        if (user != null) {
+            cart = getOrCreateUserCart(user);
+        } else {
+            if (guestToken == null || guestToken.isBlank()) {
+                throw new IllegalStateException("Guest token is required for guest checkout");
+            }
+            cart = getOrCreateGuestCart(guestToken);
+        }
+
+        if (cart.getItems() == null || cart.getItems().isEmpty()) {
             throw new IllegalStateException("Cannot checkout empty cart");
         }
 
@@ -290,19 +352,19 @@ public class CartService {
 
         return OrderMapper.toCartDto(cart);
     }
-    public CartDto updatePizzaCustomizations(Long orderItemId,
+
+    public CartDto updatePizzaCustomizations(String guestToken,
+                                             Long orderItemId,
                                              List<Long> removeIngredientIds,
                                              List<Long> addIngredientIds) {
-        User user = getCurrentUserOrThrow();
+        User user = getCurrentUserOrNull();
 
         OrderItem item = orderItemRepository.findById(orderItemId)
                 .orElseThrow(() -> new IllegalArgumentException("Order item not found: " + orderItemId));
 
         Order order = item.getOrder();
 
-        if (!order.getUser().getId().equals(user.getId())) {
-            throw new IllegalStateException("Cannot modify item from different user");
-        }
+        ensureCanModifyOrder(order, user, guestToken);
 
         if (item.getProduct().getType() != ProductType.PIZZA) {
             throw new IllegalStateException("Only pizza items support customizations");
@@ -322,33 +384,32 @@ public class CartService {
 
         return OrderMapper.toCartDto(order);
     }
-    public CartDto updateNote(Long orderItemId, String note) {
-        User user = getCurrentUserOrThrow();
 
-        OrderItem item = orderItemRepository.findById(orderItemId)
-                .orElseThrow(() -> new IllegalArgumentException("Order item not found: " + orderItemId));
-
-        if (!item.getOrder().getUser().getId().equals(user.getId())) {
-            throw new IllegalStateException("Cannot modify item from different user");
-        }
-
-        item.setNote(note);
-        item.getOrder().setUpdatedAt(LocalDateTime.now());
-
-        return OrderMapper.toCartDto(item.getOrder());
-    }
-
-    public CartDto updateVariant(Long orderItemId, Long variantId) {
-        User user = getCurrentUserOrThrow();
+    public CartDto updateNote(String guestToken, Long orderItemId, String note) {
+        User user = getCurrentUserOrNull();
 
         OrderItem item = orderItemRepository.findById(orderItemId)
                 .orElseThrow(() -> new IllegalArgumentException("Order item not found: " + orderItemId));
 
         Order order = item.getOrder();
 
-        if (!order.getUser().getId().equals(user.getId())) {
-            throw new IllegalStateException("Cannot modify item from different user");
-        }
+        ensureCanModifyOrder(order, user, guestToken);
+
+        item.setNote(note);
+        order.setUpdatedAt(LocalDateTime.now());
+
+        return OrderMapper.toCartDto(order);
+    }
+
+    public CartDto updateVariant(String guestToken, Long orderItemId, Long variantId) {
+        User user = getCurrentUserOrNull();
+
+        OrderItem item = orderItemRepository.findById(orderItemId)
+                .orElseThrow(() -> new IllegalArgumentException("Order item not found: " + orderItemId));
+
+        Order order = item.getOrder();
+
+        ensureCanModifyOrder(order, user, guestToken);
 
         if (item.getProduct().getType() != ProductType.PIZZA) {
             throw new IllegalStateException("Only pizza items can change variant");
