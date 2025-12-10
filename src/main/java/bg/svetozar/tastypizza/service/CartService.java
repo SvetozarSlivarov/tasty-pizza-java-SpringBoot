@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,8 +32,6 @@ public class CartService {
     private final OrderItemCustomizationRepository orderItemCustomizationRepository;
     private final IngredientRepository ingredientRepository;
     private final PizzaRepository pizzaRepository;
-
-
 
     private User getCurrentUserOrNull() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -155,13 +155,12 @@ public class CartService {
         orderItemCustomizationRepository.saveAll(item.getCustomizations());
     }
 
-
     public CartDto getCurrentCart(String guestToken) {
         User user = getCurrentUserOrNull();
         Order order;
 
         if (user != null) {
-            order = getOrCreateUserCart(user);
+            order = mergeGuestCartIntoUserCart(user, guestToken);
         } else {
             order = getOrCreateGuestCart(guestToken);
         }
@@ -178,7 +177,7 @@ public class CartService {
         Order order;
 
         if (user != null) {
-            order = getOrCreateUserCart(user);
+            order = mergeGuestCartIntoUserCart(user, guestToken);
         } else {
             order = getOrCreateGuestCart(guestToken);
         }
@@ -222,7 +221,7 @@ public class CartService {
         Order order;
 
         if (user != null) {
-            order = getOrCreateUserCart(user);
+            order = mergeGuestCartIntoUserCart(user, guestToken);
         } else {
             order = getOrCreateGuestCart(guestToken);
         }
@@ -319,13 +318,12 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
-
     public CartDto checkout(String guestToken, String phone, String address) {
         User user = getCurrentUserOrNull();
         Order cart;
 
         if (user != null) {
-            cart = getOrCreateUserCart(user);
+            cart = mergeGuestCartIntoUserCart(user, guestToken);
         } else {
             if (guestToken == null || guestToken.isBlank()) {
                 throw new IllegalStateException("Guest token is required for guest checkout");
@@ -433,4 +431,44 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
+    private Order mergeGuestCartIntoUserCart(User user, String guestToken) {
+        if (guestToken == null || guestToken.isBlank()) {
+            return getOrCreateUserCart(user);
+        }
+
+        Optional<Order> guestCartOpt = orderRepository
+                .findFirstByGuestTokenAndStatusOrderByIdDesc(guestToken, OrderStatus.CART);
+
+        if (guestCartOpt.isEmpty()) {
+            return getOrCreateUserCart(user);
+        }
+
+        Order guestCart = guestCartOpt.get();
+        Optional<Order> userCartOpt = orderRepository
+                .findFirstByUserAndStatusOrderByIdDesc(user, OrderStatus.CART);
+
+        if (userCartOpt.isEmpty()) {
+            guestCart.setUser(user);
+            guestCart.setGuestToken(null);
+            guestCart.setUpdatedAt(LocalDateTime.now());
+            return orderRepository.save(guestCart);
+        }
+
+        Order userCart = userCartOpt.get();
+
+        if (guestCart.getItems() != null && !guestCart.getItems().isEmpty()) {
+            List<OrderItem> guestItems = new ArrayList<>(guestCart.getItems());
+
+            for (OrderItem guestItem : guestItems) {
+                guestCart.getItems().remove(guestItem);
+                guestItem.setOrder(userCart);
+                userCart.getItems().add(guestItem);
+            }
+        }
+
+        userCart.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(userCart);
+        orderRepository.delete(guestCart);
+        return userCart;
+    }
 }
