@@ -30,6 +30,8 @@ public final class OrderMapper {
         return new CartDto(
                 order.getId(),
                 order.getStatus().name(),
+                order.getDeliveryPhone(),
+                order.getDeliveryAddress(),
                 total.toString(),
                 items
         );
