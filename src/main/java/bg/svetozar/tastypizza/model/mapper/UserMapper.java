@@ -13,7 +13,8 @@ public final class UserMapper {
                 user.getId(),
                 user.getFullname(),
                 user.getUsername(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getCreatedAt()
         );
     }
 }

@@ -16,6 +16,7 @@ public final class DrinkMapper {
                 product.getName(),
                 product.getDescription(),
                 product.getBasePrice().toString(),
+                product.getType().toString(),
                 product.isDeleted(),
                 product.getDeletedAt(),
                 product.getImageUrl()

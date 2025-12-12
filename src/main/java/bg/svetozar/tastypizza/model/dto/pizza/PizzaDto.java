@@ -11,6 +11,7 @@ public record PizzaDto(
         String name,
         String description,
         String basePrice,
+        String type,
         boolean deleted,
         LocalDateTime deletedAt,
         String spicyLevel,

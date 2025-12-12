@@ -53,6 +53,7 @@ public final class PizzaMapper {
                 product.getName(),
                 product.getDescription(),
                 product.getBasePrice().toString(),
+                product.getType().toString(),
                 product.isDeleted(),
                 product.getDeletedAt(),
                 pizza.getSpicyLevel() != null ? pizza.getSpicyLevel().name() : null,

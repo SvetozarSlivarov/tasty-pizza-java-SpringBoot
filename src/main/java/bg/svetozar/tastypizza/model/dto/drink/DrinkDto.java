@@ -8,6 +8,7 @@ public record DrinkDto(
         String name,
         String description,
         String basePrice,
+        String type,
         boolean deleted,
         LocalDateTime deleteAt,
         String imageUrl

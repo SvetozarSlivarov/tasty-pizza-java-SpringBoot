@@ -24,6 +24,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        return path != null && path.startsWith("/api/auth/");
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -42,11 +48,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             username = jwtService.extractUsername(jwt);
-        } catch (ExpiredJwtException e) {
-            writeUnauthorizedResponse(request, response, "AUTH_TOKEN_EXPIRED", "Token has expired");
-            return;
         } catch (JwtException | IllegalArgumentException e) {
-            writeUnauthorizedResponse(request, response, "AUTH_INVALID_TOKEN", "Invalid token");
+            filterChain.doFilter(request, response);
             return;
         }
 
@@ -59,12 +62,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             userDetails = (CustomUserDetails) this.userDetailsService.loadUserByUsername(username);
         } catch (UsernameNotFoundException ex) {
-            writeUnauthorizedResponse(request, response, "AUTH_INVALID_TOKEN", "Invalid token");
+            filterChain.doFilter(request, response);
             return;
         }
 
         if (!jwtService.isAccessTokenValid(jwt, userDetails)) {
-            writeUnauthorizedResponse(request, response, "AUTH_INVALID_TOKEN", "Invalid token");
+            filterChain.doFilter(request, response);
             return;
         }
 
@@ -80,32 +83,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
         filterChain.doFilter(request, response);
-    }
-
-    private void writeUnauthorizedResponse(HttpServletRequest request,
-                                           HttpServletResponse response,
-                                           String code,
-                                           String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json;charset=UTF-8");
-
-        String body = """
-            {
-              "timestamp": "%s",
-              "status": 401,
-              "error": "Unauthorized",
-              "message": "%s",
-              "path": "%s",
-              "code": "%s",
-              "validationErrors": null
-            }
-            """.formatted(
-                java.time.OffsetDateTime.now().toString(),
-                message,
-                request.getRequestURI(),
-                code
-        );
-
-        response.getWriter().write(body);
     }
 }
