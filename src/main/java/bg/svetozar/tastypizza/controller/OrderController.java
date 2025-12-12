@@ -1,9 +1,11 @@
 package bg.svetozar.tastypizza.controller;
 
 import bg.svetozar.tastypizza.model.dto.order.CartDto;
+import bg.svetozar.tastypizza.model.dto.order.OrderStatusChangeDTO;
 import bg.svetozar.tastypizza.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,5 +20,11 @@ public class OrderController {
     @GetMapping("/my")
     public ResponseEntity<List<CartDto>> getMyOrders() {
         return ResponseEntity.ok(orderService.getMyOrders());
+    }
+
+    @GetMapping("/{id}/statusHistory")
+    public List<OrderStatusChangeDTO> getStatusHistory(@PathVariable Long id,
+                                                       Authentication authentication) {
+        return orderService.getStatusHistory(id, authentication.getName());
     }
 }

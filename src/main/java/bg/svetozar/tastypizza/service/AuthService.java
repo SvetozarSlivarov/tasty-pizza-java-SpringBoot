@@ -2,7 +2,6 @@ package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.InvalidCredentialsException;
 import bg.svetozar.tastypizza.exception.UsernameAlreadyTakenException;
-import bg.svetozar.tastypizza.model.dto.auth.AuthDto;
 import bg.svetozar.tastypizza.model.dto.auth.LoginRequest;
 import bg.svetozar.tastypizza.model.dto.auth.RegisterRequest;
 import bg.svetozar.tastypizza.model.entity.User;
@@ -29,7 +28,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailsService userDetailsService;
 
-    public AuthDto register(RegisterRequest request) {
+    public Tokens register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new UsernameAlreadyTakenException(request.getUsername());
         }
@@ -48,16 +47,14 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(userDetails);
         String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-        return new AuthDto(
+        return new Tokens(
                 accessToken,
-                refreshToken,
-                user.getUsername(),
-                user.getRole().name()
+                refreshToken
         );
     }
 
 
-    public AuthDto login(LoginRequest request) {
+    public Tokens login(LoginRequest request) {
         UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -73,11 +70,9 @@ public class AuthService {
             String accessToken = jwtService.generateAccessToken(userDetails);
             String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-            return new AuthDto(
+            return new Tokens(
                     accessToken,
-                    refreshToken,
-                    user.getUsername(),
-                    user.getRole().name()
+                    refreshToken
             );
 
         } catch (AuthenticationException ex) {
@@ -85,7 +80,10 @@ public class AuthService {
         }
     }
 
-    public AuthDto refreshToken(String refreshToken) {
+    public Tokens refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new InvalidCredentialsException();
+        }
         String username;
         try {
             username = jwtService.extractUsername(refreshToken);
@@ -104,11 +102,10 @@ public class AuthService {
         String newAccessToken = jwtService.generateAccessToken(userDetails);
         String newRefreshToken = jwtService.generateRefreshToken(userDetails);
 
-        return new AuthDto(
+        return new Tokens(
                 newAccessToken,
-                newRefreshToken,
-                user.getUsername(),
-                user.getRole().name()
+                newRefreshToken
         );
     }
+    public record Tokens(String accessToken, String refreshToken) {}
 }

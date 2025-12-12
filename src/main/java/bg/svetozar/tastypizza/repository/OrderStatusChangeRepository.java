@@ -10,5 +10,5 @@ import java.util.List;
 @Repository
 public interface OrderStatusChangeRepository extends JpaRepository<OrderStatusChange, Long> {
 
-    List<OrderStatusChange> findByOrderOrderByChangedAtAsc(Order order);
+    List<OrderStatusChange> findByOrderIdOrderByChangedAtAsc(Long orderId);
 }
