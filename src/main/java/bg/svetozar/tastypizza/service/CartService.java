@@ -15,9 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -74,24 +73,26 @@ public class CartService {
         return orderRepository.save(order);
     }
 
-    private void applyPizzaCustomizations(OrderItem item,
-                                          Pizza pizza,
-                                          List<Long> removeIngredientIds,
-                                          List<Long> addIngredientIds) {
 
+    private BigDecimal applyPizzaCustomizations(
+            OrderItem item,
+            Pizza pizza,
+            List<Long> removeIngredientIds,
+            List<Long> addIngredientIds
+    ) {
         removeIngredientIds = removeIngredientIds != null ? removeIngredientIds : List.of();
         addIngredientIds = addIngredientIds != null ? addIngredientIds : List.of();
 
-        var removeSet = new java.util.HashSet<>(removeIngredientIds);
-        var addSet = new java.util.HashSet<>(addIngredientIds);
+        var removeSet = new HashSet<>(removeIngredientIds);
+        var addSet = new HashSet<>(addIngredientIds);
 
-        for (Long id : removeIngredientIds) {
+        for (Long id : removeSet) {
             if (addSet.contains(id)) {
                 throw new IllegalArgumentException("Ingredient " + id + " cannot be both added and removed");
             }
         }
 
-        var allIds = new java.util.HashSet<Long>();
+        var allIds = new HashSet<Long>();
         allIds.addAll(removeSet);
         allIds.addAll(addSet);
 
@@ -104,18 +105,19 @@ public class CartService {
 
         var baseByIngredientId = pizza.getIngredients()
                 .stream()
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         pi -> pi.getIngredient().getId(),
                         pi -> pi
                 ));
 
         var allowedByIngredientId = pizza.getAllowedIngredients()
                 .stream()
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         pai -> pai.getIngredient().getId(),
                         pai -> pai
                 ));
 
+        // REMOVE
         for (Long ingId : removeSet) {
             var base = baseByIngredientId.get(ingId);
             if (base == null) {
@@ -136,6 +138,9 @@ public class CartService {
             item.getCustomizations().add(customization);
         }
 
+        // ADD (+price)
+        BigDecimal extrasSum = BigDecimal.ZERO;
+
         for (Long ingId : addSet) {
             var allowed = allowedByIngredientId.get(ingId);
             if (allowed == null) {
@@ -143,6 +148,8 @@ public class CartService {
             }
 
             Ingredient ingredient = allowed.getIngredient();
+            BigDecimal extra = allowed.getExtraPrice() != null ? allowed.getExtraPrice() : BigDecimal.ZERO;
+            extrasSum = extrasSum.add(extra);
 
             OrderItemCustomization customization = OrderItemCustomization.builder()
                     .orderItem(item)
@@ -152,7 +159,34 @@ public class CartService {
 
             item.getCustomizations().add(customization);
         }
+
         orderItemCustomizationRepository.saveAll(item.getCustomizations());
+        return extrasSum;
+    }
+
+    private void recalcPizzaUnitPrice(OrderItem item, Pizza pizza) {
+        BigDecimal base = item.getProduct().getBasePrice() != null ? item.getProduct().getBasePrice() : BigDecimal.ZERO;
+        BigDecimal variantExtra = BigDecimal.ZERO;
+
+        if (item.getPizzaVariant() != null && item.getPizzaVariant().getExtraPrice() != null) {
+            variantExtra = item.getPizzaVariant().getExtraPrice();
+        }
+
+        Map<Long, BigDecimal> allowedExtraByIngredientId = pizza.getAllowedIngredients().stream()
+                .collect(Collectors.toMap(
+                        pai -> pai.getIngredient().getId(),
+                        pai -> pai.getExtraPrice() != null ? pai.getExtraPrice() : BigDecimal.ZERO
+                ));
+
+        BigDecimal extrasSum = item.getCustomizations().stream()
+                .filter(c -> c.getAction() == OrderItemCustomizationAction.ADD)
+                .map(c -> {
+                    if (c.getIngredient() == null) return BigDecimal.ZERO;
+                    return allowedExtraByIngredientId.getOrDefault(c.getIngredient().getId(), BigDecimal.ZERO);
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        item.setUnitPrice(base.add(variantExtra).add(extrasSum));
     }
 
     public CartDto getCurrentCart(String guestToken) {
@@ -217,6 +251,10 @@ public class CartService {
             throw new IllegalArgumentException("Quantity must be positive");
         }
 
+        if (variantId == null) {
+            throw new IllegalArgumentException("Variant is required for pizza");
+        }
+
         User user = getCurrentUserOrNull();
         Order order;
 
@@ -243,8 +281,10 @@ public class CartService {
             throw new IllegalArgumentException("Variant does not belong to given pizza");
         }
 
-        BigDecimal unitPrice = product.getBasePrice()
-                .add(variant.getExtraPrice());
+        BigDecimal base = product.getBasePrice() != null ? product.getBasePrice() : BigDecimal.ZERO;
+        BigDecimal variantExtra = variant.getExtraPrice() != null ? variant.getExtraPrice() : BigDecimal.ZERO;
+
+        BigDecimal unitPrice = base.add(variantExtra);
 
         OrderItem item = OrderItem.builder()
                 .order(order)
@@ -257,7 +297,8 @@ public class CartService {
 
         orderItemRepository.save(item);
 
-        applyPizzaCustomizations(item, pizza, removeIngredientIds, addIngredientIds);
+        BigDecimal extrasSum = applyPizzaCustomizations(item, pizza, removeIngredientIds, addIngredientIds);
+        item.setUnitPrice(unitPrice.add(extrasSum));
 
         order.getItems().add(item);
         order.setUpdatedAt(LocalDateTime.now());
@@ -371,12 +412,21 @@ public class CartService {
         Pizza pizza = pizzaRepository.findByProduct(item.getProduct())
                 .orElseThrow(() -> new IllegalArgumentException("Pizza entity not found for product " + item.getProduct().getId()));
 
+        // clear existing (db + memory)
         item.getCustomizations().clear();
         orderItemCustomizationRepository.deleteAll(
                 orderItemCustomizationRepository.findByOrderItem(item)
         );
 
-        applyPizzaCustomizations(item, pizza, removeIngredientIds, addIngredientIds);
+
+        BigDecimal extrasSum = applyPizzaCustomizations(item, pizza, removeIngredientIds, addIngredientIds);
+
+        BigDecimal base = item.getProduct().getBasePrice() != null ? item.getProduct().getBasePrice() : BigDecimal.ZERO;
+        BigDecimal variantExtra = BigDecimal.ZERO;
+        if (item.getPizzaVariant() != null && item.getPizzaVariant().getExtraPrice() != null) {
+            variantExtra = item.getPizzaVariant().getExtraPrice();
+        }
+        item.setUnitPrice(base.add(variantExtra).add(extrasSum));
 
         order.setUpdatedAt(LocalDateTime.now());
 
@@ -413,6 +463,10 @@ public class CartService {
             throw new IllegalStateException("Only pizza items can change variant");
         }
 
+        if (variantId == null) {
+            throw new IllegalArgumentException("Variant is required");
+        }
+
         PizzaVariant variant = pizzaVariantRepository.findById(variantId)
                 .orElseThrow(() -> new IllegalArgumentException("Pizza variant not found: " + variantId));
 
@@ -420,11 +474,13 @@ public class CartService {
             throw new IllegalArgumentException("Variant does not belong to this pizza");
         }
 
-        BigDecimal unitPrice = item.getProduct().getBasePrice()
-                .add(variant.getExtraPrice());
 
         item.setPizzaVariant(variant);
-        item.setUnitPrice(unitPrice);
+
+        Pizza pizza = pizzaRepository.findByProduct(item.getProduct())
+                .orElseThrow(() -> new IllegalArgumentException("Pizza entity not found for product " + item.getProduct().getId()));
+
+        recalcPizzaUnitPrice(item, pizza);
 
         order.setUpdatedAt(LocalDateTime.now());
 
