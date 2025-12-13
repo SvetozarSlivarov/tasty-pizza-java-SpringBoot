@@ -76,8 +76,8 @@ public final class PizzaMapper {
     private static PizzaIngredientDto toPizzaIngredientDto(PizzaIngredient entity) {
         return new PizzaIngredientDto(
                 entity.getId(),
-                entity.getIngredient().getId(),
                 entity.getPizza().getId(),
+                entity.getIngredient().getId(),
                 entity.getIngredient().getName(),
                 entity.isRemovable()
         );
@@ -86,8 +86,8 @@ public final class PizzaMapper {
     private static PizzaAllowedIngredientDto toPizzaAllowedIngredientDto(PizzaAllowedIngredient entity) {
         return new PizzaAllowedIngredientDto(
                 entity.getId(),
-                entity.getIngredient().getId(),
                 entity.getPizza().getId(),
+                entity.getIngredient().getId(),
                 entity.getIngredient().getName(),
                 entity.getExtraPrice().toString()
         );
