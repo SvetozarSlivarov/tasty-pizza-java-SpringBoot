@@ -43,5 +43,22 @@ public interface PizzaRepository extends JpaRepository<Pizza, Long> {
     Optional<Pizza> findByIdFull(Long id);
 
 
+    @Query("""
+    SELECT p FROM Pizza p
+    JOIN FETCH p.product pr
+    LEFT JOIN FETCH p.variants v
+    WHERE pr.deleted = true
+""")
+    List<Pizza> findDeletedFull();
+
+    @Query("""
+    SELECT p FROM Pizza p
+    JOIN FETCH p.product pr
+    WHERE pr.deleted = true
+""")
+    List<Pizza> findDeletedLight();
+
+
+
     Optional<Pizza> findByProduct(Product product);
 }

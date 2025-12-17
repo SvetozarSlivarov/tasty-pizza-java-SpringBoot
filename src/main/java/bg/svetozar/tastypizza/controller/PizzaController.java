@@ -28,6 +28,16 @@ public class PizzaController {
         return pizzaService.getAll(withVariants);
     }
 
+    @GetMapping("/deleted")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public List<PizzaDto> getAllDeleted(
+            @RequestParam(name = "withVariants", defaultValue = "false") boolean withVariants
+    ) {
+        return pizzaService.getAllDeleted(withVariants);
+    }
+
+
+
     @GetMapping("/{id}")
     public PizzaDto getById(
             @PathVariable @Positive(message = "id must be positive") Long id

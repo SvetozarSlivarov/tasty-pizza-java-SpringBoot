@@ -62,6 +62,35 @@ public class PizzaService {
     }
 
     @Transactional(readOnly = true)
+    public List<PizzaDto> getAllDeleted(boolean fullView) {
+
+        List<Pizza> pizzas = fullView
+                ? pizzaRepository.findDeletedFull()
+                : pizzaRepository.findDeletedLight();
+
+        if (fullView) {
+            pizzas.forEach(pizza -> {
+                List<PizzaIngredient> ingredients =
+                        pizzaIngredientRepository.findAllByPizzaWithIngredient(pizza);
+
+                List<PizzaAllowedIngredient> allowedIngredients =
+                        pizzaAllowedIngredientRepository.findAllByPizzaWithIngredient(pizza);
+
+                pizza.setIngredients(ingredients);
+                pizza.setAllowedIngredients(allowedIngredients);
+            });
+        }
+
+        return pizzas.stream()
+                .map(p -> fullView
+                        ? PizzaMapper.toPizzaDto(p)
+                        : PizzaMapper.toPizzaDtoWithoutFullData(p))
+                .toList();
+    }
+
+
+
+    @Transactional(readOnly = true)
     public PizzaDto getById(Long id) {
         Pizza pizza = pizzaRepository.findByIdFull(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pizza not found"));
