@@ -7,6 +7,7 @@ import bg.svetozar.tastypizza.model.entity.OrderItemCustomization;
 import bg.svetozar.tastypizza.model.entity.OrderStatusChange;
 import bg.svetozar.tastypizza.model.enums.OrderStatus;
 import bg.svetozar.tastypizza.model.enums.ProductType;
+import bg.svetozar.tastypizza.repository.OrderItemRepository;
 import bg.svetozar.tastypizza.repository.OrderRepository;
 import bg.svetozar.tastypizza.repository.OrderStatusChangeRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -27,6 +28,7 @@ public class AdminOrderService {
 
     private final OrderRepository orderRepository;
     private final OrderStatusChangeRepository statusChangeRepository;
+    private final OrderItemRepository orderItemRepository;
 
 
     @Transactional(readOnly = true)
@@ -42,6 +44,8 @@ public class AdminOrderService {
     public AdminOrderDetailDto getDetail(Long id) {
         Order order = orderRepository.findAdminDetailById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found"));
+
+        orderItemRepository.fetchCustomizationsForOrder(order.getId());
 
         List<AdminOrderItemDto> items = order.getItems().stream()
                 .map(this::mapItem)
