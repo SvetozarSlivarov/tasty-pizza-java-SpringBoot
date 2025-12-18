@@ -24,6 +24,12 @@ public class DrinkController {
         return drinkService.getAll();
     }
 
+    @GetMapping("/deleted")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public List<DrinkDto> getAllDeleted() {
+        return drinkService.getAllDeleted();
+    }
+
     @GetMapping("/{id}")
     public DrinkDto getById(@PathVariable Long id) {
         return drinkService.getById(id);

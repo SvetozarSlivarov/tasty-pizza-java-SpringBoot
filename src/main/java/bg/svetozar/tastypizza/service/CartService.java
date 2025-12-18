@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -202,6 +203,7 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public CartDto addDrinkToCart(String guestToken, Long drinkProductId, int quantity, String note) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("Quantity must be positive");
@@ -218,6 +220,10 @@ public class CartService {
 
         Product product = productRepository.findById(drinkProductId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found: " + drinkProductId));
+
+        if(product.getDeletedAt() != null) {
+            throw new IllegalArgumentException("Product " + drinkProductId + " has been deleted");
+        }
 
         if (product.getType() != ProductType.DRINK) {
             throw new IllegalArgumentException("Product " + drinkProductId + " is not a drink");
@@ -240,6 +246,7 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public CartDto addPizzaToCart(String guestToken,
                                   Long pizzaProductId,
                                   Long variantId,
@@ -266,6 +273,10 @@ public class CartService {
 
         Product product = productRepository.findById(pizzaProductId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found: " + pizzaProductId));
+
+        if(product.getDeletedAt() != null){
+            throw new IllegalArgumentException("Pizza is already deleted");
+        }
 
         if (product.getType() != ProductType.PIZZA) {
             throw new IllegalArgumentException("Product " + pizzaProductId + " is not a pizza");
@@ -526,5 +537,102 @@ public class CartService {
         orderRepository.save(userCart);
         orderRepository.delete(guestCart);
         return userCart;
+    }
+
+    public Order getCurrentCartEntity(String guestToken, User user) {
+        if (user != null) {
+            return mergeGuestCartIntoUserCart(user, guestToken);
+        }
+        return getOrCreateGuestCart(guestToken);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public CartDto addDrinkToExistingCart(Order order, Long drinkProductId, int quantity, String note) {
+        if (quantity <= 0) throw new IllegalArgumentException("Quantity must be positive");
+
+        Product product = productRepository.findById(drinkProductId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found: " + drinkProductId));
+
+        if (product.getDeletedAt() != null) {
+            throw new IllegalArgumentException("Product " + drinkProductId + " has been deleted");
+        }
+
+        if (product.getType() != ProductType.DRINK) {
+            throw new IllegalArgumentException("Product " + drinkProductId + " is not a drink");
+        }
+
+        BigDecimal unitPrice = product.getBasePrice();
+
+        OrderItem item = OrderItem.builder()
+                .order(order)
+                .product(product)
+                .quantity(quantity)
+                .unitPrice(unitPrice)
+                .note(note)
+                .build();
+
+        orderItemRepository.save(item);
+        order.getItems().add(item);
+        order.setUpdatedAt(LocalDateTime.now());
+
+        return OrderMapper.toCartDto(order);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public CartDto addPizzaToExistingCart(
+            Order order,
+            Long pizzaProductId,
+            Long variantId,
+            int quantity,
+            String note,
+            List<Long> removeIngredientIds,
+            List<Long> addIngredientIds
+    ) {
+        if (quantity <= 0) throw new IllegalArgumentException("Quantity must be positive");
+        if (variantId == null) throw new IllegalArgumentException("Variant is required for pizza");
+
+        Product product = productRepository.findById(pizzaProductId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found: " + pizzaProductId));
+
+        if (product.getDeletedAt() != null) {
+            throw new IllegalArgumentException("Pizza is already deleted");
+        }
+
+        if (product.getType() != ProductType.PIZZA) {
+            throw new IllegalArgumentException("Product " + pizzaProductId + " is not a pizza");
+        }
+
+        Pizza pizza = pizzaRepository.findByProduct(product)
+                .orElseThrow(() -> new IllegalArgumentException("Pizza entity not found for product " + pizzaProductId));
+
+        PizzaVariant variant = pizzaVariantRepository.findById(variantId)
+                .orElseThrow(() -> new IllegalArgumentException("Pizza variant not found: " + variantId));
+
+        if (!variant.getPizza().getId().equals(pizza.getId())) {
+            throw new IllegalArgumentException("Variant does not belong to given pizza");
+        }
+
+        BigDecimal base = product.getBasePrice() != null ? product.getBasePrice() : BigDecimal.ZERO;
+        BigDecimal variantExtra = variant.getExtraPrice() != null ? variant.getExtraPrice() : BigDecimal.ZERO;
+        BigDecimal unitPrice = base.add(variantExtra);
+
+        OrderItem item = OrderItem.builder()
+                .order(order)
+                .product(product)
+                .pizzaVariant(variant)
+                .quantity(quantity)
+                .unitPrice(unitPrice)
+                .note(note)
+                .build();
+
+        orderItemRepository.save(item);
+
+        BigDecimal extrasSum = applyPizzaCustomizations(item, pizza, removeIngredientIds, addIngredientIds);
+        item.setUnitPrice(unitPrice.add(extrasSum));
+
+        order.getItems().add(item);
+        order.setUpdatedAt(LocalDateTime.now());
+
+        return OrderMapper.toCartDto(order);
     }
 }

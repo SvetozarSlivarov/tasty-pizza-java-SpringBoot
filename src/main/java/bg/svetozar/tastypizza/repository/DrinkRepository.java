@@ -25,4 +25,11 @@ public interface DrinkRepository extends JpaRepository<Drink, Long> {
         WHERE prod.deleted = false AND d.id = :id
     """)
     Optional<Drink> findByIdLight(long id);
+
+    @Query("""
+    SELECT d FROM Drink d
+    JOIN FETCH d.product prod
+    WHERE prod.deleted = true
+""")
+    List<Drink> findDeletedLight();
 }

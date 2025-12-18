@@ -70,7 +70,9 @@ public class OrderService {
                 ))
                 .toList();
     }
-    @Transactional
+
+
+    @Transactional(readOnly = true)
     public ReorderResultDto reorderIntoCart(Long sourceOrderId, String guestToken) {
         User user = getCurrentUserOrThrow();
 
@@ -89,7 +91,8 @@ public class OrderService {
         int skipped = 0;
         List<String> messages = new ArrayList<>();
 
-        CartDto cart = cartService.getCurrentCart(guestToken);
+        Order cartOrder = cartService.getCurrentCartEntity(guestToken, user);
+        CartDto cart = OrderMapper.toCartDto(cartOrder);
 
         for (OrderItem item : source.getItems()) {
             try {
@@ -100,12 +103,7 @@ public class OrderService {
                 }
 
                 if (item.getProduct().getType() == ProductType.DRINK) {
-                    cart = cartService.addDrinkToCart(
-                            guestToken,
-                            item.getProduct().getId(),
-                            item.getQuantity(),
-                            item.getNote()
-                    );
+                    cart = cartService.addDrinkToExistingCart(cartOrder, item.getProduct().getId(), item.getQuantity(), item.getNote());
                     added++;
                     continue;
                 }
@@ -127,15 +125,7 @@ public class OrderService {
                         if (c.getAction() == OrderItemCustomizationAction.ADD) addIds.add(c.getIngredient().getId());
                     }
 
-                    cart = cartService.addPizzaToCart(
-                            guestToken,
-                            item.getProduct().getId(),
-                            variantId,
-                            item.getQuantity(),
-                            item.getNote(),
-                            removeIds,
-                            addIds
-                    );
+                    cart = cartService.addPizzaToExistingCart(cartOrder, item.getProduct().getId(), variantId, item.getQuantity(), item.getNote(), removeIds, addIds);
                     added++;
                     continue;
                 }

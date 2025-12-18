@@ -23,13 +23,19 @@ public class DrinkService {
     private final ProductService productService;
 
     public List<DrinkDto> getAll() {
-        return drinkRepository.findAll().stream()
+        return drinkRepository.findAllLight().stream()
+                .map(DrinkMapper::toDrinkDto)
+                .toList();
+    }
+    public List<DrinkDto> getAllDeleted() {
+        return drinkRepository.findDeletedLight().stream()
                 .map(DrinkMapper::toDrinkDto)
                 .toList();
     }
 
+
     public DrinkDto getById(Long id) {
-        Drink drink = drinkRepository.findById(id)
+        Drink drink = drinkRepository.findByIdLight(id)
                 .orElseThrow(() -> new IllegalArgumentException("Drink not found: " + id));
 
         return DrinkMapper.toDrinkDto(drink);
