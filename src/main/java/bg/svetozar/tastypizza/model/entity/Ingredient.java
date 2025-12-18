@@ -2,6 +2,7 @@ package bg.svetozar.tastypizza.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@BatchSize(size = 50)
 public class Ingredient {
 
     @Id

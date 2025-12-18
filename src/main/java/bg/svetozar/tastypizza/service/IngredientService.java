@@ -33,7 +33,7 @@ public class IngredientService {
     }
 
     public List<IngredientWithTypeDto> findAllWithType(String show) {
-        List<Ingredient> ingredients = resolveListByShow(show);
+        List<Ingredient> ingredients = resolveListByShowWithType(show);
         return ingredientMapper.toWithTypeResponseList(ingredients);
     }
 
@@ -58,16 +58,37 @@ public class IngredientService {
 
         return ingredientRepository.findAllByDeletedFalse();
     }
+    private List<Ingredient> resolveListByShowWithType(String show) {
+        boolean admin = isAdmin();
+
+        if (!admin) {
+            return ingredientRepository.findAllActiveWithType();
+        }
+
+        if (show == null || show.isBlank() || show.equalsIgnoreCase("active")) {
+            return ingredientRepository.findAllActiveWithType();
+        }
+
+        if (show.equalsIgnoreCase("all")) {
+            return ingredientRepository.findAllWithType();
+        }
+
+        if (show.equalsIgnoreCase("deleted")) {
+            return ingredientRepository.findAllDeletedWithType();
+        }
+
+        return ingredientRepository.findAllActiveWithType();
+    }
 
 
     public IngredientWithTypeDto findOne(Long id) {
         Ingredient ingredient;
 
         if (isAdmin()) {
-            ingredient = ingredientRepository.findById(id)
+            ingredient = ingredientRepository.findByIdWithType(id)
                     .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + id));
         } else {
-            ingredient = ingredientRepository.findByIdAndDeletedFalse(id)
+            ingredient = ingredientRepository.findByIdAndDeletedFalseWithType(id)
                     .orElseThrow(() -> new IllegalArgumentException("Ingredient not found or deleted: " + id));
         }
 

@@ -1,11 +1,12 @@
 package bg.svetozar.tastypizza.service;
 
-import bg.svetozar.tastypizza.exception.IngredientTypeAlreadyExistsException;
-import bg.svetozar.tastypizza.exception.IngredientTypeNotFoundException;
+import bg.svetozar.tastypizza.exception.*;
 import bg.svetozar.tastypizza.model.entity.IngredientType;
+import bg.svetozar.tastypizza.repository.IngredientRepository;
 import bg.svetozar.tastypizza.repository.IngredientTypeRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ import java.util.List;
 public class IngredientTypeService {
 
     private final IngredientTypeRepository ingredientTypeRepository;
+    private final IngredientRepository ingredientRepository;
 
     public List<IngredientType> findAll() {
         return ingredientTypeRepository.findAll();
@@ -56,6 +58,12 @@ public class IngredientTypeService {
     }
 
     public void deleteById(Long id) {
+
+        long used = ingredientRepository.countByType_Id(id);
+        if (used > 0) {
+            throw new IngredientTypeInUseException(id);
+        }
+
         IngredientType ingredientType = findById(id);
         ingredientTypeRepository.delete(ingredientType);
     }

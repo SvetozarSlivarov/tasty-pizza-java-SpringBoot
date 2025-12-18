@@ -194,6 +194,18 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(body);
     }
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<?> handleIllegalState(IllegalStateException ex, HttpServletRequest req) {
+        if ("TYPE_IN_USE".equals(ex.getMessage())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                    Map.of(
+                            "code", "TYPE_IN_USE",
+                            "message", "Cannot delete type: it is used by existing ingredients."
+                    )
+            );
+        }
+        return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+    }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(
