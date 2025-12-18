@@ -56,10 +56,19 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderStatusChangeDTO> getStatusHistory(Long orderId, String userEmail) {
+    public List<OrderStatusChangeDTO> getStatusHistory(Long orderId, String username) {
 
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found"));
+
+        User requester = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalStateException("User not found: " + username));
+
+        if (requester.getRole() != bg.svetozar.tastypizza.model.enums.UserRole.ADMIN) {
+            if (order.getUser() == null || !order.getUser().getId().equals(requester.getId())) {
+                throw new AccessDeniedException("Not allowed to view status history for this order");
+            }
+        }
 
         return statusChangeRepository
                 .findByOrderIdOrderByChangedAtAsc(orderId)
