@@ -32,10 +32,10 @@ public class AdminOrderService {
 
 
     @Transactional(readOnly = true)
-    public Page<AdminOrderListDto> list(String statusStr, String q, Pageable pageable) {
+    public Page<AdminOrderListDto> list(String statusStr, String q, Long userId, Pageable pageable) {
         OrderStatus status = parseStatusOrNull(statusStr);
         String qq = normalize(q);
-        return orderRepository.adminSearch(status, qq, pageable);
+        return orderRepository.adminSearch(status, qq, userId ,pageable);
     }
 
     // -------- DETAIL (single order with items + history) --------

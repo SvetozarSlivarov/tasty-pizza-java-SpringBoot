@@ -38,47 +38,50 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query(
             value = """
-            select new bg.svetozar.tastypizza.model.dto.admin.AdminOrderListDto(
-                o.id,
-                o.status,
-                sum(oi.unitPrice * oi.quantity),
-                sum(oi.quantity),
-                o.createdAt,
-                u.username,
-                o.deliveryPhone,
-                o.deliveryAddress
-            )
-            from Order o
-            left join o.user u
-            left join o.items oi
-            where o.status <> bg.svetozar.tastypizza.model.enums.OrderStatus.CART
-              and (:status is null or o.status = :status)
-              and (
-                :q is null or :q = '' or
-                cast(o.id as string) like concat('%', :q, '%') or
-                lower(u.username) like lower(concat('%', :q, '%')) or
-                lower(o.deliveryPhone) like lower(concat('%', :q, '%')) or
-                lower(o.deliveryAddress) like lower(concat('%', :q, '%'))
-              )
-            group by o.id, o.status, o.createdAt, u.username, o.deliveryPhone, o.deliveryAddress
-        """,
+        select new bg.svetozar.tastypizza.model.dto.admin.AdminOrderListDto(
+            o.id,
+            o.status,
+            sum(oi.unitPrice * oi.quantity),
+            sum(oi.quantity),
+            o.createdAt,
+            u.username,
+            o.deliveryPhone,
+            o.deliveryAddress
+        )
+        from Order o
+        left join o.user u
+        left join o.items oi
+        where o.status <> bg.svetozar.tastypizza.model.enums.OrderStatus.CART
+          and (:status is null or o.status = :status)
+          and (:userId is null or u.id = :userId)
+          and (
+            :q is null or :q = '' or
+            cast(o.id as string) like concat('%', :q, '%') or
+            lower(u.username) like lower(concat('%', :q, '%')) or
+            lower(o.deliveryPhone) like lower(concat('%', :q, '%')) or
+            lower(o.deliveryAddress) like lower(concat('%', :q, '%'))
+          )
+        group by o.id, o.status, o.createdAt, u.username, o.deliveryPhone, o.deliveryAddress
+    """,
             countQuery = """
-            select count(o)
-            from Order o
-            left join o.user u
-            where o.status <> bg.svetozar.tastypizza.model.enums.OrderStatus.CART
-              and (:status is null or o.status = :status)
-              and (
-                :q is null or :q = '' or
-                cast(o.id as string) like concat('%', :q, '%') or
-                lower(u.username) like lower(concat('%', :q, '%')) or
-                lower(o.deliveryPhone) like lower(concat('%', :q, '%')) or
-                lower(o.deliveryAddress) like lower(concat('%', :q, '%'))
-              )
-        """
+        select count(o)
+        from Order o
+        left join o.user u
+        where o.status <> bg.svetozar.tastypizza.model.enums.OrderStatus.CART
+          and (:status is null or o.status = :status)
+          and (:userId is null or u.id = :userId)
+          and (
+            :q is null or :q = '' or
+            cast(o.id as string) like concat('%', :q, '%') or
+            lower(u.username) like lower(concat('%', :q, '%')) or
+            lower(o.deliveryPhone) like lower(concat('%', :q, '%')) or
+            lower(o.deliveryAddress) like lower(concat('%', :q, '%'))
+          )
+    """
     )
     Page<AdminOrderListDto> adminSearch(@Param("status") OrderStatus status,
                                         @Param("q") String q,
+                                        @Param("userId") Long userId,
                                         Pageable pageable);
 
     @EntityGraph(attributePaths = {

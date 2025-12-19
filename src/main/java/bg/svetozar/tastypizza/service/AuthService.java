@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -91,9 +92,12 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
-        CustomUserDetails userDetails =
-                (CustomUserDetails) userDetailsService.loadUserByUsername(username);
-        User user = userDetails.getUser();
+        CustomUserDetails userDetails;
+        try {
+            userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
+        } catch (UsernameNotFoundException ex) {
+            throw new InvalidCredentialsException();
+        }
 
         if (!jwtService.isRefreshTokenValid(refreshToken, userDetails)) {
             throw new InvalidCredentialsException();

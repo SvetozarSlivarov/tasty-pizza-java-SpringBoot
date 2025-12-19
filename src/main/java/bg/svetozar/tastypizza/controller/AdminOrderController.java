@@ -26,9 +26,10 @@ public class AdminOrderController {
     public AdminOrderPageDto list(
             @RequestParam(defaultValue = "all") String status,
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) Long userId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<AdminOrderListDto> page = adminOrderService.list(status, q, pageable);
+        Page<AdminOrderListDto> page = adminOrderService.list(status, q, userId, pageable);
         return AdminOrderPageDto.from(page);
     }
 

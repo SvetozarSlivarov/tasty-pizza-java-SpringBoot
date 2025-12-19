@@ -3,6 +3,8 @@ package bg.svetozar.tastypizza.security;
 import bg.svetozar.tastypizza.model.entity.User;
 import bg.svetozar.tastypizza.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -17,8 +19,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository
-                .findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+                .findByUsernameAndDeletedFalse(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username + " or deleted"));
 
         return new CustomUserDetails(user);
     }
