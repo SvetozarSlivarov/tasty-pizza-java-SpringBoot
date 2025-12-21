@@ -4,10 +4,12 @@ import bg.svetozar.tastypizza.model.dto.order.*;
 import bg.svetozar.tastypizza.service.CartService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -16,6 +18,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor
+@Validated
 public class CartController {
 
     private static final String CART_TOKEN_COOKIE = "cart_token";
@@ -38,7 +41,6 @@ public class CartController {
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
         return newToken;
     }
 
@@ -48,10 +50,7 @@ public class CartController {
             HttpServletResponse response
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
-
-        CartDto cart = cartService.getCurrentCart(guestToken);
-
-        return ResponseEntity.ok(cart);
+        return ResponseEntity.ok(cartService.getCurrentCart(guestToken));
     }
 
     @PostMapping("/items/drink")
@@ -92,11 +91,12 @@ public class CartController {
 
         return ResponseEntity.ok(cart);
     }
+
     @PatchMapping("/items/{itemId}")
     public ResponseEntity<CartDto> updateCartItem(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
-            @PathVariable Long itemId,
+            @PathVariable @Min(value = 1, message = "itemId must be >= 1") Long itemId,
             @Valid @RequestBody UpdateCartItemRequest request
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
@@ -112,6 +112,8 @@ public class CartController {
         if (request.variantId() != null) {
             cart = cartService.updateVariant(guestToken, itemId, request.variantId());
         }
+
+
         if (request.removeIngredientIds() != null || request.addIngredientIds() != null) {
             cart = cartService.updatePizzaCustomizations(
                     guestToken,
@@ -120,6 +122,7 @@ public class CartController {
                     request.addIngredientIds()
             );
         }
+
         if (cart == null) {
             cart = cartService.getCurrentCart(guestToken);
         }
@@ -131,13 +134,10 @@ public class CartController {
     public ResponseEntity<CartDto> removeItem(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
-            @PathVariable Long itemId
+            @PathVariable @Min(value = 1, message = "itemId must be >= 1") Long itemId
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
-
-        CartDto cart = cartService.removeItem(guestToken, itemId);
-
-        return ResponseEntity.ok(cart);
+        return ResponseEntity.ok(cartService.removeItem(guestToken, itemId));
     }
 
     @PostMapping("/checkout")

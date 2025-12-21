@@ -2,19 +2,23 @@ package bg.svetozar.tastypizza.controller;
 
 import bg.svetozar.tastypizza.model.dto.admin.AdminUserDto;
 import bg.svetozar.tastypizza.model.dto.admin.UpdateUserRoleRequest;
-import bg.svetozar.tastypizza.model.enums.UserRole;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
 import bg.svetozar.tastypizza.service.AdminUserService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
+@Validated
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
@@ -23,8 +27,9 @@ public class AdminUserController {
     public Page<AdminUserDto> list(
             @RequestParam(required = false) String q,
             @RequestParam(required = false, defaultValue = "active") String show,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "page must be >= 0") int page,
+            @RequestParam(defaultValue = "20") @Min(value = 1, message = "size must be >= 1")
+            @Max(value = 200, message = "size must be <= 200") int size
     ) {
         return adminUserService.list(q, show, PageRequest.of(page, size, Sort.by("id").descending()));
     }

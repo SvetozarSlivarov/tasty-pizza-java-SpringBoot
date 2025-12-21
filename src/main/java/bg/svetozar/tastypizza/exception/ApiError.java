@@ -10,5 +10,7 @@ public record ApiError(
         String message,
         String path,
         String code,
+        String traceId,
+        Map<String, Object> details,
         Map<String, String> validationErrors
 ) {}
