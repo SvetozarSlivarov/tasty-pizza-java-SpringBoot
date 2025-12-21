@@ -73,5 +73,20 @@ public final class ErrorCode {
     // Operation
     public static final String INVALID_OPERATION = "INVALID_OPERATION";
 
+    public static final String ORDER_NOT_FOUND = "ORDER_NOT_FOUND";
+    public static final String INVALID_ORDER_ID = "INVALID_ORDER_ID";
+    public static final String ORDER_FORBIDDEN = "ORDER_FORBIDDEN";
+
+    // Order status / transitions
+    public static final String INVALID_STATUS_FILTER = "INVALID_STATUS_FILTER";
+    public static final String INVALID_STATUS_TRANSITION = "INVALID_STATUS_TRANSITION";
+    public static final String ORDER_ALREADY_CANCELLED = "ORDER_ALREADY_CANCELLED";
+    public static final String ORDER_ALREADY_DELIVERED = "ORDER_ALREADY_DELIVERED";
+    public static final String ORDER_IS_CART = "ORDER_IS_CART";
+
+    // Reorder
+    public static final String REORDER_NOT_ALLOWED = "REORDER_NOT_ALLOWED";
+    public static final String REORDER_SOURCE_IS_CART = "REORDER_SOURCE_IS_CART";
+
 
 }

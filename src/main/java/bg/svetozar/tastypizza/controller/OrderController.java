@@ -5,11 +5,13 @@ import bg.svetozar.tastypizza.model.dto.order.OrderStatusChangeDTO;
 import bg.svetozar.tastypizza.model.dto.order.ReorderResultDto;
 import bg.svetozar.tastypizza.service.OrderService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -19,6 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
+@Validated
 public class OrderController {
 
     private final OrderService orderService;
@@ -46,7 +49,7 @@ public class OrderController {
 
     @PostMapping("/{id}/reorder")
     public ResponseEntity<ReorderResultDto> reorder(
-            @PathVariable Long id,
+            @PathVariable @Min(value = 1, message = "id must be >= 1") Long id,
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response
     ) {
@@ -60,8 +63,11 @@ public class OrderController {
     }
 
     @GetMapping("/{id}/statusHistory")
-    public List<OrderStatusChangeDTO> getStatusHistory(@PathVariable Long id,
-                                                       Authentication authentication) {
-        return orderService.getStatusHistory(id, authentication.getName());
+    public ResponseEntity<List<OrderStatusChangeDTO>> getStatusHistory(
+            @PathVariable @Min(value = 1, message = "id must be >= 1") Long id,
+            Authentication authentication
+    ) {
+        String username = (authentication != null) ? authentication.getName() : null;
+        return ResponseEntity.ok(orderService.getStatusHistory(id, username));
     }
 }

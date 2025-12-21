@@ -1,5 +1,7 @@
 package bg.svetozar.tastypizza.controller;
 
+import bg.svetozar.tastypizza.exception.ErrorCode;
+import bg.svetozar.tastypizza.exception.UnauthorizedException;
 import bg.svetozar.tastypizza.model.dto.auth.AuthResponse;
 import bg.svetozar.tastypizza.model.dto.auth.LoginRequest;
 import bg.svetozar.tastypizza.model.dto.auth.RegisterRequest;
@@ -9,7 +11,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,27 +29,45 @@ public class AuthController {
     @Value("${app.jwt.refresh-expiration-ms}")
     private long refreshExpirationMs;
 
+    /**
+     * Препоръчително: в prod да е true (https).
+     * Може да го управляваш през env:
+     * app.cookies.secure=true/false
+     */
+    @Value("${app.cookies.secure:false}")
+    private boolean cookieSecure;
+
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
-                                                 HttpServletResponse response) {
-        var tokens = authService.register(request); // returns access+refresh internally
+    public ResponseEntity<AuthResponse> register(
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletResponse response
+    ) {
+        var tokens = authService.register(request);
         setRefreshCookie(response, tokens.refreshToken());
         return ResponseEntity.ok(new AuthResponse(tokens.accessToken()));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request,
-                                              HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletResponse response
+    ) {
         var tokens = authService.login(request);
         setRefreshCookie(response, tokens.refreshToken());
         return ResponseEntity.ok(new AuthResponse(tokens.accessToken()));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@CookieValue(name = REFRESH_COOKIE, required = false) String refreshToken,
-                                                HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> refresh(
+            @CookieValue(name = REFRESH_COOKIE, required = false) String refreshToken,
+            HttpServletResponse response
+    ) {
         if (refreshToken == null || refreshToken.isBlank()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            // вместо празен 401 -> консистентен ApiError
+            throw new UnauthorizedException(
+                    "Invalid refresh token",
+                    null // details/context; ако искаш: ErrorContext.of("cookie", REFRESH_COOKIE)
+            );
         }
 
         var tokens = authService.refreshToken(refreshToken);
@@ -65,22 +84,24 @@ public class AuthController {
     private void setRefreshCookie(HttpServletResponse response, String token) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE, token)
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofMillis(refreshExpirationMs))
                 .build();
+
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private void clearRefreshCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE, "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(0)
                 .build();
+
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }

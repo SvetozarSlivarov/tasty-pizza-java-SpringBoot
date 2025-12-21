@@ -24,6 +24,7 @@ public class AdminUserController {
     private final AdminUserService adminUserService;
 
     @GetMapping
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public Page<AdminUserDto> list(
             @RequestParam(required = false) String q,
             @RequestParam(required = false, defaultValue = "active") String show,
@@ -35,16 +36,19 @@ public class AdminUserController {
     }
 
     @PatchMapping("/{id}/role")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public AdminUserDto changeRole(@PathVariable Long id, @RequestBody @Valid UpdateUserRoleRequest req) {
         return adminUserService.changeRole(id, req.role());
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public AdminUserDto softDelete(@PathVariable Long id) {
         return adminUserService.softDelete(id);
     }
 
     @PostMapping("/{id}/restore")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public AdminUserDto restore(@PathVariable Long id) {
         return adminUserService.restore(id);
     }

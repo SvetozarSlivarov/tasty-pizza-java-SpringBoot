@@ -1,6 +1,12 @@
 package bg.svetozar.tastypizza.service;
 
-import bg.svetozar.tastypizza.model.dto.admin.*;
+import bg.svetozar.tastypizza.exception.*;
+import bg.svetozar.tastypizza.model.dto.admin.AdminOrderDetailDto;
+import bg.svetozar.tastypizza.model.dto.admin.AdminOrderItemCustomizationDto;
+import bg.svetozar.tastypizza.model.dto.admin.AdminOrderItemDto;
+import bg.svetozar.tastypizza.model.dto.admin.AdminOrderListDto;
+import bg.svetozar.tastypizza.model.dto.admin.AdminOrderStatusChangeDto;
+import bg.svetozar.tastypizza.model.dto.admin.AdminOrderStatusUpdateDto;
 import bg.svetozar.tastypizza.model.entity.Order;
 import bg.svetozar.tastypizza.model.entity.OrderItem;
 import bg.svetozar.tastypizza.model.entity.OrderItemCustomization;
@@ -10,7 +16,6 @@ import bg.svetozar.tastypizza.model.enums.ProductType;
 import bg.svetozar.tastypizza.repository.OrderItemRepository;
 import bg.svetozar.tastypizza.repository.OrderRepository;
 import bg.svetozar.tastypizza.repository.OrderStatusChangeRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,7 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,21 +37,38 @@ public class AdminOrderService {
     private final OrderStatusChangeRepository statusChangeRepository;
     private final OrderItemRepository orderItemRepository;
 
+    // -------- LIST --------
 
     @Transactional(readOnly = true)
     public Page<AdminOrderListDto> list(String statusStr, String q, Long userId, Pageable pageable) {
-        OrderStatus status = parseStatusOrNull(statusStr);
+        OrderStatus status = parseStatusOrThrow(statusStr);
         String qq = normalize(q);
-        return orderRepository.adminSearch(status, qq, userId ,pageable);
+
+        if (userId != null && userId <= 0) {
+            throw new BadRequestException(
+                    "Invalid userId",
+                    ErrorCode.BAD_REQUEST,
+                    ErrorContext.of("userId", userId)
+            );
+        }
+
+        return orderRepository.adminSearch(status, qq, userId, pageable);
     }
 
-    // -------- DETAIL (single order with items + history) --------
+    // -------- DETAIL --------
 
     @Transactional(readOnly = true)
     public AdminOrderDetailDto getDetail(Long id) {
-        Order order = orderRepository.findAdminDetailById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Order not found"));
+        requireOrderId(id);
 
+        Order order = orderRepository.findAdminDetailById(id)
+                .orElseThrow(() -> new NotFoundException(
+                        "Order not found",
+                        ErrorCode.ORDER_NOT_FOUND,
+                        ErrorContext.of("orderId", id)
+                ));
+
+        // load customizations if repository does it explicitly
         orderItemRepository.fetchCustomizationsForOrder(order.getId());
 
         List<AdminOrderItemDto> items = order.getItems().stream()
@@ -65,7 +89,7 @@ public class AdminOrderService {
                 .map(sc -> new AdminOrderStatusChangeDto(sc.getStatus(), sc.getChangedAt()))
                 .toList();
 
-        String username = order.getUser() != null ? order.getUser().getUsername() : null;
+        String username = (order.getUser() != null) ? order.getUser().getUsername() : null;
 
         return new AdminOrderDetailDto(
                 order.getId(),
@@ -82,6 +106,9 @@ public class AdminOrderService {
                 history
         );
     }
+
+    // -------- STATUS UPDATES --------
+
     @Transactional
     public AdminOrderStatusUpdateDto adminStartPreparing(Long orderId) {
         Order order = getOrderOrThrow(orderId);
@@ -110,22 +137,31 @@ public class AdminOrderService {
     public AdminOrderStatusUpdateDto adminCancel(Long orderId) {
         Order order = getOrderOrThrow(orderId);
 
-        // allow cancel from these states only
         if (order.getStatus() == OrderStatus.DELIVERED) {
-            throw new IllegalStateException("Cannot cancel a delivered order");
+            throw new ConflictException(
+                    "Cannot cancel a delivered order",
+                    ErrorCode.ORDER_ALREADY_DELIVERED,
+                    ErrorContext.of("orderId", orderId)
+            );
         }
         if (order.getStatus() == OrderStatus.CANCELLED) {
-            // може и да върнем ok без промяна, но по-чисто е грешка
-            throw new IllegalStateException("Order is already cancelled");
+            throw new ConflictException(
+                    "Order is already cancelled",
+                    ErrorCode.ORDER_ALREADY_CANCELLED,
+                    ErrorContext.of("orderId", orderId)
+            );
         }
         if (order.getStatus() == OrderStatus.CART) {
-            throw new IllegalStateException("Cannot cancel a cart");
+            throw new BadRequestException(
+                    "Cannot cancel a cart",
+                    ErrorCode.ORDER_IS_CART,
+                    ErrorContext.of("orderId", orderId)
+            );
         }
 
         changeStatus(order, OrderStatus.CANCELLED);
         return new AdminOrderStatusUpdateDto(order.getId(), order.getStatus(), order.getUpdatedAt());
     }
-
 
     // -------- MAPPERS --------
 
@@ -135,12 +171,12 @@ public class AdminOrderService {
                         .stream()
                         .sorted(Comparator.comparing(c -> c.getId() == null ? Long.MAX_VALUE : c.getId()))
                         .map(c -> new AdminOrderItemCustomizationDto(
-                                c.getAction().name(),
-                                c.getIngredient().getName()
+                                c.getAction() != null ? c.getAction().name() : null,
+                                (c.getIngredient() != null) ? c.getIngredient().getName() : null
                         ))
                         .toList();
 
-        BigDecimal unitPrice = oi.getUnitPrice() == null ? BigDecimal.ZERO : oi.getUnitPrice();
+        BigDecimal unitPrice = (oi.getUnitPrice() == null) ? BigDecimal.ZERO : oi.getUnitPrice();
         BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(oi.getQuantity()));
 
         String name = null;
@@ -149,11 +185,13 @@ public class AdminOrderService {
 
         if (oi.getProduct() != null) {
             name = oi.getProduct().getName();
-            type = oi.getProduct().getType() != null ? oi.getProduct().getType() : null;
+            type = oi.getProduct().getType();
             imageUrl = oi.getProduct().getImageUrl();
         }
 
-        String variantLabel = (oi.getPizzaVariant() != null) ? oi.getPizzaVariant().getDough().name() + " " + oi.getPizzaVariant().getSize().name() : null;
+        String variantLabel = (oi.getPizzaVariant() != null)
+                ? oi.getPizzaVariant().getDough().name() + " " + oi.getPizzaVariant().getSize().name()
+                : null;
 
         return new AdminOrderItemDto(
                 oi.getId(),
@@ -177,21 +215,58 @@ public class AdminOrderService {
         return t.isEmpty() ? "" : t;
     }
 
-    private static OrderStatus parseStatusOrNull(String statusStr) {
+    /**
+     * "all" / blank / null => null (no filter).
+     * otherwise must be a valid OrderStatus, else 400.
+     */
+    private OrderStatus parseStatusOrThrow(String statusStr) {
         if (statusStr == null) return null;
+
         String s = statusStr.trim();
         if (s.isEmpty() || s.equalsIgnoreCase("all")) return null;
-        return OrderStatus.valueOf(s.toUpperCase());
+
+        try {
+            return OrderStatus.valueOf(s.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException(
+                    "Invalid status filter",
+                    ErrorCode.INVALID_STATUS_FILTER,
+                    ErrorContext.of("status", statusStr)
+            );
+        }
     }
+
+    private void requireOrderId(Long orderId) {
+        if (orderId == null || orderId <= 0) {
+            throw new BadRequestException(
+                    "Invalid order id",
+                    ErrorCode.INVALID_ORDER_ID,
+                    ErrorContext.of("orderId", orderId)
+            );
+        }
+    }
+
     private Order getOrderOrThrow(Long orderId) {
+        requireOrderId(orderId);
+
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new EntityNotFoundException("Order not found"));
+                .orElseThrow(() -> new NotFoundException(
+                        "Order not found",
+                        ErrorCode.ORDER_NOT_FOUND,
+                        ErrorContext.of("orderId", orderId)
+                ));
     }
 
     private void requireStatus(Order order, OrderStatus expected) {
         if (order.getStatus() != expected) {
-            throw new IllegalStateException(
-                    "Invalid status transition. Expected " + expected + " but was " + order.getStatus()
+            throw new ConflictException(
+                    "Invalid status transition",
+                    ErrorCode.INVALID_STATUS_TRANSITION,
+                    ctx(
+                            "orderId", order.getId(),
+                            "expected", expected.name(),
+                            "actual", order.getStatus() != null ? order.getStatus().name() : null
+                    )
             );
         }
     }
@@ -206,5 +281,18 @@ public class AdminOrderService {
         sc.setStatus(newStatus);
         sc.setChangedAt(LocalDateTime.now());
         statusChangeRepository.save(sc);
+    }
+
+    private Map<String, Object> ctx(Object... kv) {
+        Map<String, Object> m = new HashMap<>();
+        if (kv == null) return null;
+        for (int i = 0; i + 1 < kv.length; i += 2) {
+            Object k = kv[i];
+            Object v = kv[i + 1];
+            if (k != null && v != null) {
+                m.put(String.valueOf(k), v);
+            }
+        }
+        return m.isEmpty() ? null : m;
     }
 }
