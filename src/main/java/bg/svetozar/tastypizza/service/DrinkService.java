@@ -1,5 +1,7 @@
 package bg.svetozar.tastypizza.service;
 
+import bg.svetozar.tastypizza.exception.ErrorCode;
+import bg.svetozar.tastypizza.exception.NotFoundException;
 import bg.svetozar.tastypizza.model.dto.drink.DrinkDto;
 import bg.svetozar.tastypizza.model.dto.drink.DrinkRequest;
 import bg.svetozar.tastypizza.model.entity.Drink;
@@ -27,16 +29,19 @@ public class DrinkService {
                 .map(DrinkMapper::toDrinkDto)
                 .toList();
     }
+
     public List<DrinkDto> getAllDeleted() {
         return drinkRepository.findDeletedLight().stream()
                 .map(DrinkMapper::toDrinkDto)
                 .toList();
     }
 
-
     public DrinkDto getById(Long id) {
         Drink drink = drinkRepository.findByIdLight(id)
-                .orElseThrow(() -> new IllegalArgumentException("Drink not found: " + id));
+                .orElseThrow(() -> new NotFoundException(
+                        "Drink not found: " + id,
+                        ErrorCode.DRINK_NOT_FOUND
+                ));
 
         return DrinkMapper.toDrinkDto(drink);
     }
@@ -63,7 +68,10 @@ public class DrinkService {
     // ---------- UPDATE ----------
     public DrinkDto update(Long id, DrinkRequest request) {
         Drink drink = drinkRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Drink not found: " + id));
+                .orElseThrow(() -> new NotFoundException(
+                        "Drink not found: " + id,
+                        ErrorCode.DRINK_NOT_FOUND
+                ));
 
         Product updatedProduct = productService.updateProduct(
                 drink.getProduct().getId(),
@@ -75,7 +83,6 @@ public class DrinkService {
         );
 
         drink.setProduct(updatedProduct);
-
         drinkRepository.save(drink);
 
         return DrinkMapper.toDrinkDto(drink);
@@ -83,14 +90,20 @@ public class DrinkService {
 
     public void softDelete(Long id) {
         Drink drink = drinkRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Drink not found: " + id));
+                .orElseThrow(() -> new NotFoundException(
+                        "Drink not found: " + id,
+                        ErrorCode.DRINK_NOT_FOUND
+                ));
 
         productService.softDelete(drink.getProduct().getId());
     }
 
     public void restoreDeletedDrink(Long id) {
         Drink drink = drinkRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Drink not found: " + id));
+                .orElseThrow(() -> new NotFoundException(
+                        "Drink not found: " + id,
+                        ErrorCode.DRINK_NOT_FOUND
+                ));
 
         productService.restoreDeletedProduct(drink.getProduct().getId());
     }

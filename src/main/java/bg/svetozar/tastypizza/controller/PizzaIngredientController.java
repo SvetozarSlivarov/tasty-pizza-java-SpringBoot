@@ -1,7 +1,7 @@
 package bg.svetozar.tastypizza.controller;
 
-import bg.svetozar.tastypizza.model.dto.pizzaIngredient.PizzaIngredientRequest;
 import bg.svetozar.tastypizza.model.dto.pizzaIngredient.PizzaIngredientDto;
+import bg.svetozar.tastypizza.model.dto.pizzaIngredient.PizzaIngredientRequest;
 import bg.svetozar.tastypizza.service.PizzaIngredientService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -39,13 +39,14 @@ public class PizzaIngredientController {
     }
 
     @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public PizzaIngredientDto update(
             @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId,
             @PathVariable @Positive(message = "id must be positive") Long id,
             @Valid @RequestBody PizzaIngredientRequest request
     ) {
-        return pizzaIngredientService.update(id, request);
+        return pizzaIngredientService.update(pizzaId, id, request);
     }
 
     @DeleteMapping("/{id}")
@@ -55,6 +56,6 @@ public class PizzaIngredientController {
             @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId,
             @PathVariable @Positive(message = "id must be positive") Long id
     ) {
-        pizzaIngredientService.delete(id);
+        pizzaIngredientService.delete(pizzaId, id);
     }
 }

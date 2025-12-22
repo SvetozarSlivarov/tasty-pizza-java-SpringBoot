@@ -1,7 +1,9 @@
 package bg.svetozar.tastypizza.service;
 
-import bg.svetozar.tastypizza.model.dto.ingredient.IngredientRequest;
+import bg.svetozar.tastypizza.exception.ErrorCode;
+import bg.svetozar.tastypizza.exception.NotFoundException;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientDto;
+import bg.svetozar.tastypizza.model.dto.ingredient.IngredientRequest;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientWithTypeDto;
 import bg.svetozar.tastypizza.model.entity.Ingredient;
 import bg.svetozar.tastypizza.model.entity.IngredientType;
@@ -26,7 +28,6 @@ public class IngredientService {
     private final IngredientTypeRepository ingredientTypeRepository;
     private final IngredientMapper ingredientMapper;
 
-
     public List<IngredientDto> findAllBasic(String show) {
         List<Ingredient> ingredients = resolveListByShow(show);
         return ingredientMapper.toResponseList(ingredients);
@@ -36,6 +37,10 @@ public class IngredientService {
         List<Ingredient> ingredients = resolveListByShowWithType(show);
         return ingredientMapper.toWithTypeResponseList(ingredients);
     }
+
+    // ----------------------------------------------------------------
+    // LIST RESOLUTION
+    // ----------------------------------------------------------------
 
     private List<Ingredient> resolveListByShow(String show) {
         boolean admin = isAdmin();
@@ -56,8 +61,9 @@ public class IngredientService {
             return ingredientRepository.findAllByDeletedTrue();
         }
 
-        return ingredientRepository.findAllByDeletedFalse();
+        throw new IllegalArgumentException("Invalid show filter: " + show);
     }
+
     private List<Ingredient> resolveListByShowWithType(String show) {
         boolean admin = isAdmin();
 
@@ -77,8 +83,9 @@ public class IngredientService {
             return ingredientRepository.findAllDeletedWithType();
         }
 
-        return ingredientRepository.findAllActiveWithType();
+        throw new IllegalArgumentException("Invalid show filter: " + show);
     }
+
 
 
     public IngredientWithTypeDto findOne(Long id) {
@@ -86,18 +93,28 @@ public class IngredientService {
 
         if (isAdmin()) {
             ingredient = ingredientRepository.findByIdWithType(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + id));
+                    .orElseThrow(() -> new NotFoundException(
+                            "Ingredient not found: " + id,
+                            ErrorCode.INGREDIENT_NOT_FOUND
+                    ));
         } else {
             ingredient = ingredientRepository.findByIdAndDeletedFalseWithType(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Ingredient not found or deleted: " + id));
+                    .orElseThrow(() -> new NotFoundException(
+                            "Ingredient not found or deleted: " + id,
+                            ErrorCode.INGREDIENT_NOT_FOUND
+                    ));
         }
 
         return ingredientMapper.toWithTypeResponse(ingredient);
     }
 
+
     public IngredientWithTypeDto create(IngredientRequest dto) {
         IngredientType type = ingredientTypeRepository.findById(dto.typeId())
-                .orElseThrow(() -> new IllegalArgumentException("IngredientType not found: " + dto.typeId()));
+                .orElseThrow(() -> new NotFoundException(
+                        "Ingredient type not found: " + dto.typeId(),
+                        ErrorCode.INGREDIENT_TYPE_NOT_FOUND
+                ));
 
         Ingredient ingredient = Ingredient.builder()
                 .name(dto.name())
@@ -112,10 +129,16 @@ public class IngredientService {
 
     public IngredientWithTypeDto update(Long id, IngredientRequest dto) {
         Ingredient ingredient = ingredientRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + id));
+                .orElseThrow(() -> new NotFoundException(
+                        "Ingredient not found: " + id,
+                        ErrorCode.INGREDIENT_NOT_FOUND
+                ));
 
         IngredientType type = ingredientTypeRepository.findById(dto.typeId())
-                .orElseThrow(() -> new IllegalArgumentException("IngredientType not found: " + dto.typeId()));
+                .orElseThrow(() -> new NotFoundException(
+                        "Ingredient type not found: " + dto.typeId(),
+                        ErrorCode.INGREDIENT_TYPE_NOT_FOUND
+                ));
 
         ingredient.setName(dto.name());
         ingredient.setType(type);
@@ -125,7 +148,10 @@ public class IngredientService {
 
     public void softDelete(Long id) {
         Ingredient ingredient = ingredientRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + id));
+                .orElseThrow(() -> new NotFoundException(
+                        "Ingredient not found: " + id,
+                        ErrorCode.INGREDIENT_NOT_FOUND
+                ));
 
         ingredient.setDeleted(true);
         ingredient.setDeletedAt(LocalDateTime.now());
@@ -133,7 +159,10 @@ public class IngredientService {
 
     public void restore(Long id) {
         Ingredient ingredient = ingredientRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + id));
+                .orElseThrow(() -> new NotFoundException(
+                        "Ingredient not found: " + id,
+                        ErrorCode.INGREDIENT_NOT_FOUND
+                ));
 
         ingredient.setDeleted(false);
         ingredient.setDeletedAt(null);

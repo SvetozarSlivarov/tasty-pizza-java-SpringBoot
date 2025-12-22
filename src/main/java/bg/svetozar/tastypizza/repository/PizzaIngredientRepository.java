@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PizzaIngredientRepository extends JpaRepository<PizzaIngredient, Long> {
 
@@ -18,4 +19,8 @@ public interface PizzaIngredientRepository extends JpaRepository<PizzaIngredient
         where pi.pizza = :pizza
     """)
     List<PizzaIngredient> findAllByPizzaWithIngredient(@Param("pizza") Pizza pizza);
+
+    boolean existsByPizza_IdAndIngredient_Id(Long pizzaId, Long ingredientId);
+
+    Optional<PizzaIngredient> findByIdAndPizza_Id(Long id, Long pizzaId);
 }

@@ -1,18 +1,23 @@
 package bg.svetozar.tastypizza.model.dto.drink;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public record DrinkRequest(
+
         @NotBlank(message = "Name is required")
-        @Size(max = 100, message = "Name must be at most 100 characters")
+        @Size(min = 2, max = 80, message = "Name must be between 2 and 80 characters")
         String name,
 
-        @Size(max = 1000, message = "Description must be at most 1000 characters")
+        @Size(max = 500, message = "Description must be at most 500 characters")
         String description,
 
-        @NotNull(message = "Base price is required")
-        @DecimalMin(value = "0.01", inclusive = true, message = "Base price must be greater than 0")
-        @Digits(integer = 6, fraction = 2, message = "Base price must have up to 6 digits and 2 decimals")
+        @NotBlank(message = "Base price is required")
+        @Pattern(
+                regexp = "^(?:0|[1-9]\\d*)(?:\\.\\d{1,2})?$",
+                message = "Base price must be a valid number with up to 2 decimals"
+        )
         String basePrice,
 
         String imageBase64

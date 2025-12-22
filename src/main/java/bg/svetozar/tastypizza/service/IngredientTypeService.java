@@ -1,12 +1,14 @@
 package bg.svetozar.tastypizza.service;
 
-import bg.svetozar.tastypizza.exception.*;
+import bg.svetozar.tastypizza.exception.BadRequestException;
+import bg.svetozar.tastypizza.exception.ConflictException;
+import bg.svetozar.tastypizza.exception.ErrorCode;
+import bg.svetozar.tastypizza.exception.ErrorContext;
+import bg.svetozar.tastypizza.exception.NotFoundException;
 import bg.svetozar.tastypizza.model.entity.IngredientType;
 import bg.svetozar.tastypizza.repository.IngredientRepository;
 import bg.svetozar.tastypizza.repository.IngredientTypeRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +28,22 @@ public class IngredientTypeService {
 
     public IngredientType findById(Long id) {
         return ingredientTypeRepository.findById(id)
-                .orElseThrow(() -> new IngredientTypeNotFoundException(id));
+                .orElseThrow(() -> new NotFoundException(
+                        "Ingredient type not found: " + id,
+                        ErrorCode.INGREDIENT_TYPE_NOT_FOUND,
+                        ErrorContext.of("id", id)
+                ));
     }
 
     public IngredientType create(String name) {
         String normalizedName = normalizeName(name);
 
         if (ingredientTypeRepository.existsByNameIgnoreCase(normalizedName)) {
-            throw new IngredientTypeAlreadyExistsException(normalizedName);
+            throw new ConflictException(
+                    "Ingredient type already exists: " + normalizedName,
+                    ErrorCode.INGREDIENT_TYPE_ALREADY_EXISTS,
+                    ErrorContext.of("name", normalizedName)
+            );
         }
 
         IngredientType ingredientType = IngredientType.builder()
@@ -45,12 +55,18 @@ public class IngredientTypeService {
 
     public IngredientType update(Long id, String name) {
         IngredientType ingredientType = findById(id);
-
         String normalizedName = normalizeName(name);
 
-        if (ingredientTypeRepository.existsByNameIgnoreCase(normalizedName)
-                && !ingredientType.getName().equalsIgnoreCase(normalizedName)) {
-            throw new IngredientTypeAlreadyExistsException(normalizedName);
+        boolean nameTaken = ingredientTypeRepository.existsByNameIgnoreCase(normalizedName);
+        boolean sameAsCurrent = ingredientType.getName() != null
+                && ingredientType.getName().equalsIgnoreCase(normalizedName);
+
+        if (nameTaken && !sameAsCurrent) {
+            throw new ConflictException(
+                    "Ingredient type already exists: " + normalizedName,
+                    ErrorCode.INGREDIENT_TYPE_ALREADY_EXISTS,
+                    ErrorContext.of("name", normalizedName)
+            );
         }
 
         ingredientType.setName(normalizedName);
@@ -58,10 +74,13 @@ public class IngredientTypeService {
     }
 
     public void deleteById(Long id) {
-
         long used = ingredientRepository.countByType_Id(id);
         if (used > 0) {
-            throw new IngredientTypeInUseException(id);
+            throw new ConflictException(
+                    "Ingredient type is in use: " + id,
+                    ErrorCode.TYPE_IN_USE,
+                    ErrorContext.of("id", id, "usedCount", used)
+            );
         }
 
         IngredientType ingredientType = findById(id);
@@ -73,13 +92,20 @@ public class IngredientTypeService {
 
         int deleted = ingredientTypeRepository.deleteAllByNameIgnoreCase(normalizedName);
         if (deleted == 0) {
-            throw new IngredientTypeNotFoundException(normalizedName);
+            throw new NotFoundException(
+                    "Ingredient type not found: " + normalizedName,
+                    ErrorCode.INGREDIENT_TYPE_NOT_FOUND,
+                    ErrorContext.of("name", normalizedName)
+            );
         }
     }
 
     private String normalizeName(String name) {
-        if (name == null) {
-            throw new IllegalArgumentException("Ingredient type name cannot be null");
+        if (name == null || name.isBlank()) {
+            throw new BadRequestException(
+                    "Ingredient type name cannot be empty",
+                    ErrorCode.BAD_REQUEST
+            );
         }
         return name.trim().toUpperCase();
     }

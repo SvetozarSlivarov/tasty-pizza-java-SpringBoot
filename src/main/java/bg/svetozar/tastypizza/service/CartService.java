@@ -34,7 +34,6 @@ public class CartService {
     private final IngredientRepository ingredientRepository;
     private final PizzaRepository pizzaRepository;
 
-
     private User getCurrentUserOrNull() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
@@ -47,11 +46,12 @@ public class CartService {
     private Order getOrCreateUserCart(User user) {
         return orderRepository.findFirstByUserAndStatusOrderByIdDesc(user, OrderStatus.CART)
                 .orElseGet(() -> {
+                    LocalDateTime now = LocalDateTime.now();
                     Order order = Order.builder()
                             .user(user)
                             .status(OrderStatus.CART)
-                            .createdAt(LocalDateTime.now())
-                            .updatedAt(LocalDateTime.now())
+                            .createdAt(now)
+                            .updatedAt(now)
                             .build();
                     return orderRepository.save(order);
                 });
@@ -66,12 +66,13 @@ public class CartService {
     private Order createGuestCart(String guestToken) {
         requireGuestToken(guestToken);
 
+        LocalDateTime now = LocalDateTime.now();
         Order order = Order.builder()
                 .user(null)
                 .guestToken(guestToken)
                 .status(OrderStatus.CART)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .createdAt(now)
+                .updatedAt(now)
                 .build();
 
         return orderRepository.save(order);
@@ -334,6 +335,29 @@ public class CartService {
             cart = getOrCreateGuestCart(guestToken);
         }
 
+        if (cart.getStatus() != OrderStatus.CART) {
+            throw new BadRequestException(
+                    "Order is not a cart",
+                    ErrorCode.INVALID_OPERATION,
+                    ErrorContext.of("orderId", cart.getId())
+            );
+        }
+
+        if (phone == null || phone.isBlank()) {
+            throw new BadRequestException(
+                    "Phone is required",
+                    ErrorCode.BAD_REQUEST,
+                    ErrorContext.of("field", "phone")
+            );
+        }
+        if (address == null || address.isBlank()) {
+            throw new BadRequestException(
+                    "Address is required",
+                    ErrorCode.BAD_REQUEST,
+                    ErrorContext.of("field", "address")
+            );
+        }
+
         if (cart.getItems() == null || cart.getItems().isEmpty()) {
             throw new ConflictException(
                     "Cannot checkout empty cart",
@@ -341,15 +365,17 @@ public class CartService {
             );
         }
 
+        LocalDateTime now = LocalDateTime.now();
+
         cart.setDeliveryPhone(phone);
         cart.setDeliveryAddress(address);
         cart.setStatus(OrderStatus.ORDERED);
-        cart.setUpdatedAt(LocalDateTime.now());
+        cart.setUpdatedAt(now);
 
         OrderStatusChange change = OrderStatusChange.builder()
                 .order(cart)
                 .status(OrderStatus.ORDERED)
-                .changedAt(LocalDateTime.now())
+                .changedAt(now)
                 .build();
 
         cart.getStatusChanges().add(change);
@@ -481,11 +507,28 @@ public class CartService {
 
         if (!allIds.isEmpty()) {
             var ingredients = ingredientRepository.findAllById(allIds);
-            if (ingredients.size() != allIds.size()) {
-                throw new NotFoundException(
-                        "Some ingredients do not exist",
-                        ErrorCode.INGREDIENT_NOT_FOUND
-                );
+
+            // map by id
+            Map<Long, Ingredient> byId = ingredients.stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(Ingredient::getId, it -> it, (a, b) -> a));
+
+            for (Long id : allIds) {
+                Ingredient ing = byId.get(id);
+                if (ing == null) {
+                    throw new NotFoundException(
+                            "Some ingredients do not exist",
+                            ErrorCode.INGREDIENT_NOT_FOUND,
+                            ErrorContext.of("ingredientId", id)
+                    );
+                }
+                if (ing.getDeletedAt() != null) {
+                    throw new NotFoundException(
+                            "Ingredient is deleted",
+                            ErrorCode.INGREDIENT_NOT_FOUND,
+                            ErrorContext.of("ingredientId", id)
+                    );
+                }
             }
         }
 
@@ -745,6 +788,6 @@ public class CartService {
                 m.put(String.valueOf(k), v);
             }
         }
-        return m.isEmpty() ? null : m;
+        return m;
     }
 }

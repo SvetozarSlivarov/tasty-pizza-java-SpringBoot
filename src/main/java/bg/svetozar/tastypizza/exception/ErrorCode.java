@@ -88,5 +88,14 @@ public final class ErrorCode {
     public static final String REORDER_NOT_ALLOWED = "REORDER_NOT_ALLOWED";
     public static final String REORDER_SOURCE_IS_CART = "REORDER_SOURCE_IS_CART";
 
+    // PizzaAllowedIngredient
+    public static final String PIZZA_ALLOWED_INGREDIENT_NOT_FOUND = "PIZZA_ALLOWED_INGREDIENT_NOT_FOUND";
+    public static final String PIZZA_ALLOWED_INGREDIENT_ALREADY_EXISTS = "PIZZA_ALLOWED_INGREDIENT_ALREADY_EXISTS";
+    public static final String INVALID_EXTRA_PRICE = "INVALID_EXTRA_PRICE";
+
+    public static final String PIZZA_INGREDIENT_NOT_FOUND = "PIZZA_INGREDIENT_NOT_FOUND";
+    public static final String PIZZA_INGREDIENT_ALREADY_EXISTS = "PIZZA_INGREDIENT_ALREADY_EXISTS";
+
+
 
 }

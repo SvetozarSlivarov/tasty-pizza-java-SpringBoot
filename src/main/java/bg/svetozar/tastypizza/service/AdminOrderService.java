@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,8 +35,6 @@ public class AdminOrderService {
     private final OrderRepository orderRepository;
     private final OrderStatusChangeRepository statusChangeRepository;
     private final OrderItemRepository orderItemRepository;
-
-    // -------- LIST --------
 
     @Transactional(readOnly = true)
     public Page<AdminOrderListDto> list(String statusStr, String q, Long userId, Pageable pageable) {
@@ -55,8 +52,6 @@ public class AdminOrderService {
         return orderRepository.adminSearch(status, qq, userId, pageable);
     }
 
-    // -------- DETAIL --------
-
     @Transactional(readOnly = true)
     public AdminOrderDetailDto getDetail(Long id) {
         requireOrderId(id);
@@ -68,7 +63,6 @@ public class AdminOrderService {
                         ErrorContext.of("orderId", id)
                 ));
 
-        // load customizations if repository does it explicitly
         orderItemRepository.fetchCustomizationsForOrder(order.getId());
 
         List<AdminOrderItemDto> items = order.getItems().stream()
@@ -106,8 +100,6 @@ public class AdminOrderService {
                 history
         );
     }
-
-    // -------- STATUS UPDATES --------
 
     @Transactional
     public AdminOrderStatusUpdateDto adminStartPreparing(Long orderId) {
@@ -163,8 +155,6 @@ public class AdminOrderService {
         return new AdminOrderStatusUpdateDto(order.getId(), order.getStatus(), order.getUpdatedAt());
     }
 
-    // -------- MAPPERS --------
-
     private AdminOrderItemDto mapItem(OrderItem oi) {
         List<AdminOrderItemCustomizationDto> customizations =
                 (oi.getCustomizations() == null ? List.<OrderItemCustomization>of() : oi.getCustomizations())
@@ -207,18 +197,12 @@ public class AdminOrderService {
         );
     }
 
-    // -------- HELPERS --------
-
     private static String normalize(String q) {
         if (q == null) return null;
         String t = q.trim();
-        return t.isEmpty() ? "" : t;
+        return t.isEmpty() ? null : t;
     }
 
-    /**
-     * "all" / blank / null => null (no filter).
-     * otherwise must be a valid OrderStatus, else 400.
-     */
     private OrderStatus parseStatusOrThrow(String statusStr) {
         if (statusStr == null) return null;
 
@@ -262,7 +246,7 @@ public class AdminOrderService {
             throw new ConflictException(
                     "Invalid status transition",
                     ErrorCode.INVALID_STATUS_TRANSITION,
-                    ctx(
+                    Map.of(
                             "orderId", order.getId(),
                             "expected", expected.name(),
                             "actual", order.getStatus() != null ? order.getStatus().name() : null
@@ -272,27 +256,16 @@ public class AdminOrderService {
     }
 
     private void changeStatus(Order order, OrderStatus newStatus) {
+        LocalDateTime now = LocalDateTime.now();
+
         order.setStatus(newStatus);
-        order.setUpdatedAt(LocalDateTime.now());
+        order.setUpdatedAt(now);
         orderRepository.save(order);
 
         OrderStatusChange sc = new OrderStatusChange();
         sc.setOrder(order);
         sc.setStatus(newStatus);
-        sc.setChangedAt(LocalDateTime.now());
+        sc.setChangedAt(now);
         statusChangeRepository.save(sc);
-    }
-
-    private Map<String, Object> ctx(Object... kv) {
-        Map<String, Object> m = new HashMap<>();
-        if (kv == null) return null;
-        for (int i = 0; i + 1 < kv.length; i += 2) {
-            Object k = kv[i];
-            Object v = kv[i + 1];
-            if (k != null && v != null) {
-                m.put(String.valueOf(k), v);
-            }
-        }
-        return m.isEmpty() ? null : m;
     }
 }
