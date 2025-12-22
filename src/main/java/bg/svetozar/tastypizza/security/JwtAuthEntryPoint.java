@@ -1,5 +1,8 @@
 package bg.svetozar.tastypizza.security;
 
+import bg.svetozar.tastypizza.exception.ApiError;
+import bg.svetozar.tastypizza.exception.ErrorCode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.AuthenticationException;
@@ -7,10 +10,13 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
+import java.time.Instant;
+import java.util.Map;
 
 @Component
 public class JwtAuthEntryPoint implements AuthenticationEntryPoint {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void commence(
@@ -19,30 +25,33 @@ public class JwtAuthEntryPoint implements AuthenticationEntryPoint {
             AuthenticationException authException
     ) throws IOException {
 
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
 
-        String message = authException.getMessage();
-        if (message == null || message.isBlank()) {
-            message = "Authentication required";
-        }
+        String message = resolveMessage(authException);
 
-        String body = """
-            {
-              "timestamp": "%s",
-              "status": 401,
-              "error": "Unauthorized",
-              "message": "%s",
-              "path": "%s",
-              "code": "UNAUTHORIZED",
-              "validationErrors": null
-            }
-            """.formatted(
-                OffsetDateTime.now().toString(),
+        String traceId = resolveTraceId(request);
+
+        ApiError body = new ApiError(
+                Instant.now(),
+                401,
+                "Unauthorized",
                 message,
-                request.getRequestURI()
+                request.getRequestURI(),
+                ErrorCode.UNAUTHORIZED,
+                traceId,
+                Map.of(),
+                null
         );
 
-        response.getWriter().write(body);
+        response.getWriter().write(objectMapper.writeValueAsString(body));
+    }
+
+    private String resolveMessage(AuthenticationException ex) {
+        return "Authentication required";
+    }
+
+    private String resolveTraceId(HttpServletRequest request) {
+        return null;
     }
 }

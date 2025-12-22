@@ -2,7 +2,6 @@ package bg.svetozar.tastypizza.model.mapper;
 
 import bg.svetozar.tastypizza.model.dto.drink.DrinkDto;
 import bg.svetozar.tastypizza.model.entity.Drink;
-import bg.svetozar.tastypizza.model.entity.Product;
 
 public final class DrinkMapper {
 

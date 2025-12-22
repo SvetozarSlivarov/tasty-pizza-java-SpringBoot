@@ -14,7 +14,6 @@ public class ForbiddenException extends BusinessException {
         super(message, code, HttpStatus.FORBIDDEN, details);
     }
 
-    // удобен default
     public ForbiddenException(String message) {
         super(message, ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN);
     }

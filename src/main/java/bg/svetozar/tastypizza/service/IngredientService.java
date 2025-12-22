@@ -38,9 +38,6 @@ public class IngredientService {
         return ingredientMapper.toWithTypeResponseList(ingredients);
     }
 
-    // ----------------------------------------------------------------
-    // LIST RESOLUTION
-    // ----------------------------------------------------------------
 
     private List<Ingredient> resolveListByShow(String show) {
         boolean admin = isAdmin();

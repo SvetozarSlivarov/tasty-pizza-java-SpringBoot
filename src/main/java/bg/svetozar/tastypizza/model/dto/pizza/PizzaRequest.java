@@ -16,9 +16,11 @@ public record PizzaRequest(
         @Size(max = 1000, message = "Description must be at most 1000 characters")
         String description,
 
-        @NotNull(message = "Base price is required")
-        @DecimalMin(value = "0.01", inclusive = true, message = "Base price must be greater than 0")
-        @Digits(integer = 6, fraction = 2, message = "Base price must have up to 6 digits and 2 decimals")
+        @NotBlank(message = "Base price is required")
+        @Pattern(
+                regexp = "^(?:0|[1-9]\\d*)(?:\\.\\d{1,2})?$",
+                message = "Base price must be a valid number with up to 2 decimals"
+        )
         String basePrice,
 
         String imageBase64,

@@ -92,10 +92,6 @@ public class CartService {
         return getOrCreateGuestCart(guestToken);
     }
 
-    // -------------------------
-    // Public API
-    // -------------------------
-
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public CartDto addDrinkToCart(String guestToken, Long drinkProductId, int quantity, String note) {
         requirePositiveQty(quantity);
@@ -383,10 +379,6 @@ public class CartService {
         return OrderMapper.toCartDto(cart);
     }
 
-    // -------------------------
-    // Reorder helpers (existing cart)
-    // -------------------------
-
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public CartDto addDrinkToExistingCart(Order order, Long drinkProductId, int quantity, String note) {
         requirePositiveQty(quantity);
@@ -475,10 +467,6 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
-    // -------------------------
-    // Customizations / pricing
-    // -------------------------
-
     private BigDecimal applyPizzaCustomizations(
             OrderItem item,
             Pizza pizza,
@@ -508,7 +496,6 @@ public class CartService {
         if (!allIds.isEmpty()) {
             var ingredients = ingredientRepository.findAllById(allIds);
 
-            // map by id
             Map<Long, Ingredient> byId = ingredients.stream()
                     .filter(Objects::nonNull)
                     .collect(Collectors.toMap(Ingredient::getId, it -> it, (a, b) -> a));
@@ -546,7 +533,6 @@ public class CartService {
                         pai -> pai
                 ));
 
-        // REMOVE
         for (Long ingId : removeSet) {
             var base = baseByIngredientId.get(ingId);
             if (base == null) {
@@ -575,7 +561,6 @@ public class CartService {
             item.getCustomizations().add(customization);
         }
 
-        // ADD (+price)
         BigDecimal extrasSum = BigDecimal.ZERO;
 
         for (Long ingId : addSet) {
@@ -626,10 +611,6 @@ public class CartService {
         item.setUnitPrice(base.add(variantExtra).add(extrasSum));
     }
 
-    // -------------------------
-    // Ownership checks
-    // -------------------------
-
     private void ensureCanModifyOrder(Order order, User currentUser, String guestToken) {
         if (currentUser != null) {
             if (order.getUser() == null || !order.getUser().getId().equals(currentUser.getId())) {
@@ -653,10 +634,6 @@ public class CartService {
             }
         }
     }
-
-    // -------------------------
-    // Merge guest -> user
-    // -------------------------
 
     private Order mergeGuestCartIntoUserCart(User user, String guestToken) {
         if (guestToken == null || guestToken.isBlank()) {
@@ -699,9 +676,6 @@ public class CartService {
         return userCart;
     }
 
-    // -------------------------
-    // Small helpers (validation / loading)
-    // -------------------------
 
     private void requirePositiveQty(int quantity) {
         if (quantity <= 0) {

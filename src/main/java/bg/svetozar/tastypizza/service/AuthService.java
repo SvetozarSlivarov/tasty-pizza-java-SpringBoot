@@ -31,7 +31,6 @@ public class AuthService {
 
     @Transactional
     public Tokens register(RegisterRequest request) {
-        // DTO-то трябва да е @Valid в контролера, така че тук приемаме, че request не е null.
         String username = request.getUsername();
 
         if (userRepository.existsByUsername(username)) {

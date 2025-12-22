@@ -153,7 +153,6 @@ public class GlobalExceptionHandler {
 
             Map<String, String> validationErrors = new HashMap<>();
             if (field != null) {
-                // ако е enum, изкарваме allowed values
                 Class<?> target = ife.getTargetType();
                 if (target != null && target.isEnum()) {
                     Object[] constants = target.getEnumConstants();

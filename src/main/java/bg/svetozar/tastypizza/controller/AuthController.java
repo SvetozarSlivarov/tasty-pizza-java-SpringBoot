@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -29,11 +30,6 @@ public class AuthController {
     @Value("${app.jwt.refresh-expiration-ms}")
     private long refreshExpirationMs;
 
-    /**
-     * Препоръчително: в prod да е true (https).
-     * Може да го управляваш през env:
-     * app.cookies.secure=true/false
-     */
     @Value("${app.cookies.secure:false}")
     private boolean cookieSecure;
 
@@ -63,10 +59,9 @@ public class AuthController {
             HttpServletResponse response
     ) {
         if (refreshToken == null || refreshToken.isBlank()) {
-            // вместо празен 401 -> консистентен ApiError
             throw new UnauthorizedException(
                     "Invalid refresh token",
-                    null // details/context; ако искаш: ErrorContext.of("cookie", REFRESH_COOKIE)
+                    (Map<String, Object>) null
             );
         }
 

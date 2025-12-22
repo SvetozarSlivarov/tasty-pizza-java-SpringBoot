@@ -42,7 +42,6 @@ public class OrderService {
 
         String username = auth.getName();
 
-        // Ако имаш soft-delete -> ползвай findByUsernameAndDeletedFalse
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UnauthorizedException("Invalid authentication principal"));
     }
@@ -86,25 +85,11 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderStatusChangeDTO> getStatusHistory(Long orderId, String username) {
-        // Забележка: това username идва отвън; по-добре е да не се приема като параметър,
-        // а да се ползва auth, но го оставяме да компилира и да работи както е.
+    public List<OrderStatusChangeDTO> getStatusHistory(Long orderId) {
 
-        if (username == null || username.isBlank()) {
-            throw new BadRequestException(
-                    "Username is required",
-                    ErrorCode.BAD_REQUEST
-            );
-        }
+        User requester = getCurrentUserOrThrow();
 
         Order order = requireOrder(orderId);
-
-        User requester = userRepository.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException(
-                        "User not found",
-                        ErrorCode.USER_NOT_FOUND,
-                        ErrorContext.of("username", username)
-                ));
 
         ensureCanAccessOrder(requester, order);
 

@@ -8,9 +8,9 @@ import java.util.List;
 public record AdminOrderItemDto(
         Long id,
         String name,
-        ProductType type,           // ако имаш ProductType/enum -> string
+        ProductType type,
         String imageUrl,
-        String variantLabel,   // ако има (пица размер/вариант), иначе null
+        String variantLabel,
         int quantity,
         BigDecimal unitPrice,
         BigDecimal lineTotal,

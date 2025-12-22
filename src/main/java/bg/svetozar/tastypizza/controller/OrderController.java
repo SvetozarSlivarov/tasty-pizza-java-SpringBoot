@@ -64,10 +64,8 @@ public class OrderController {
 
     @GetMapping("/{id}/statusHistory")
     public ResponseEntity<List<OrderStatusChangeDTO>> getStatusHistory(
-            @PathVariable @Min(value = 1, message = "id must be >= 1") Long id,
-            Authentication authentication
+            @PathVariable @Min(value = 1, message = "id must be >= 1") Long id
     ) {
-        String username = (authentication != null) ? authentication.getName() : null;
-        return ResponseEntity.ok(orderService.getStatusHistory(id, username));
+        return ResponseEntity.ok(orderService.getStatusHistory(id));
     }
 }
