@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +20,23 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByUserOrderByCreatedAtDesc(User user);
+
+    @Query("""
+        select o.id
+        from Order o
+        where o.status = :status
+          and o.user is null
+          and o.guestToken is not null
+          and (
+                (o.updatedAt is not null and o.updatedAt < :cutoff) or
+                (o.updatedAt is null and o.createdAt < :cutoff)
+              )
+        order by coalesce(o.updatedAt, o.createdAt) asc
+    """)
+    Page<Long> findStaleGuestCartIds(@Param("status") OrderStatus status,
+                                     @Param("cutoff") LocalDateTime cutoff,
+                                     Pageable pageable);
+
 
     @Query("""
         select distinct o
