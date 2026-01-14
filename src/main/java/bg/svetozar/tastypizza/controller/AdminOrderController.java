@@ -25,11 +25,11 @@ public class AdminOrderController {
     @GetMapping
     public AdminOrderPageDto list(
             @RequestParam(defaultValue = "all") String status,
-            @RequestParam(required = false) String q,
+            @RequestParam(name = "q", required = false) String query,
             @RequestParam(required = false) Long userId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        Page<AdminOrderListDto> page = adminOrderService.list(status, q, userId, pageable);
+        Page<AdminOrderListDto> page = adminOrderService.list(status, query, userId, pageable);
         return AdminOrderPageDto.from(page);
     }
 

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -58,10 +59,10 @@ public class AuthController {
             @CookieValue(name = REFRESH_COOKIE, required = false) String refreshToken,
             HttpServletResponse response
     ) {
-        if (refreshToken == null || refreshToken.isBlank()) {
+        if (!StringUtils.hasText(refreshToken)) {
             throw new UnauthorizedException(
                     "Invalid refresh token",
-                    (Map<String, Object>) null
+                    Map.of()
             );
         }
 

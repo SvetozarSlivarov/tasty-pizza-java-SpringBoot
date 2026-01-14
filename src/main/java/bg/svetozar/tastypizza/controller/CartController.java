@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +27,7 @@ public class CartController {
     private final CartService cartService;
 
     private String ensureCartTokenCookie(String cartTokenFromCookie, HttpServletResponse response) {
-        if (cartTokenFromCookie != null && !cartTokenFromCookie.isBlank()) {
+        if (StringUtils.hasText(cartTokenFromCookie)) {
             return cartTokenFromCookie;
         }
 
@@ -100,34 +101,7 @@ public class CartController {
             @Valid @RequestBody UpdateCartItemRequest request
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
-
-        CartDto cart = null;
-
-        if (request.quantity() != null) {
-            cart = cartService.updateQuantity(guestToken, itemId, request.quantity());
-        }
-        if (request.note() != null) {
-            cart = cartService.updateNote(guestToken, itemId, request.note());
-        }
-        if (request.variantId() != null) {
-            cart = cartService.updateVariant(guestToken, itemId, request.variantId());
-        }
-
-
-        if (request.removeIngredientIds() != null || request.addIngredientIds() != null) {
-            cart = cartService.updatePizzaCustomizations(
-                    guestToken,
-                    itemId,
-                    request.removeIngredientIds(),
-                    request.addIngredientIds()
-            );
-        }
-
-        if (cart == null) {
-            cart = cartService.getCurrentCart(guestToken);
-        }
-
-        return ResponseEntity.ok(cart);
+        return ResponseEntity.ok(cartService.patchCartItem(guestToken, itemId, request));
     }
 
     @DeleteMapping("/items/{itemId}")

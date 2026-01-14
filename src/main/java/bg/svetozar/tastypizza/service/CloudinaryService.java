@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -25,7 +26,7 @@ public class CloudinaryService {
     private String folder;
 
     public String uploadBase64Image(String base64Image) {
-        if (base64Image == null || base64Image.isBlank()) {
+        if (StringUtils.hasText(base64Image)) {
             return null;
         }
 
@@ -55,7 +56,7 @@ public class CloudinaryService {
     }
 
     public void deleteByUrl(String url) {
-        if (url == null || url.isBlank()) {
+        if (StringUtils.hasText(url)) {
             return;
         }
 

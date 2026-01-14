@@ -2,6 +2,7 @@ package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.*;
 import bg.svetozar.tastypizza.model.dto.order.CartDto;
+import bg.svetozar.tastypizza.model.dto.order.UpdateCartItemRequest;
 import bg.svetozar.tastypizza.model.entity.*;
 import bg.svetozar.tastypizza.model.enums.OrderItemCustomizationAction;
 import bg.svetozar.tastypizza.model.enums.OrderStatus;
@@ -14,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -92,7 +94,6 @@ public class CartService {
         return getOrCreateGuestCart(guestToken);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public CartDto addDrinkToCart(String guestToken, Long drinkProductId, int quantity, String note) {
         requirePositiveQty(quantity);
 
@@ -122,7 +123,7 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+
     public CartDto addPizzaToCart(String guestToken,
                                   Long pizzaProductId,
                                   Long variantId,
@@ -188,17 +189,39 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
-    public CartDto updateQuantity(String guestToken, Long orderItemId, int quantity) {
-        requirePositiveQty(quantity);
-
+    public CartDto patchCartItem(String guestToken, Long orderItemId, UpdateCartItemRequest request) {
         User user = getCurrentUserOrNull();
-        OrderItem item = requireOrderItem(orderItemId);
 
+        OrderItem item = requireOrderItem(orderItemId);
         Order order = item.getOrder();
         ensureCanModifyOrder(order, user, guestToken);
 
-        item.setQuantity(quantity);
-        order.setUpdatedAt(LocalDateTime.now());
+        boolean changed = false;
+
+        if (request.quantity() != null) {
+            requirePositiveQty(request.quantity());
+            item.setQuantity(request.quantity());
+            changed = true;
+        }
+
+        if (request.note() != null) {
+            item.setNote(request.note());
+            changed = true;
+        }
+
+        if (request.variantId() != null) {
+            applyVariantChange(item, request.variantId());
+            changed = true;
+        }
+
+        if (request.removeIngredientIds() != null || request.addIngredientIds() != null) {
+            applyCustomizationChange(item, request.removeIngredientIds(), request.addIngredientIds());
+            changed = true;
+        }
+
+        if (changed) {
+            order.setUpdatedAt(LocalDateTime.now());
+        }
 
         return OrderMapper.toCartDto(order);
     }
@@ -212,108 +235,6 @@ public class CartService {
 
         order.getItems().remove(item);
         orderItemRepository.delete(item);
-
-        order.setUpdatedAt(LocalDateTime.now());
-
-        return OrderMapper.toCartDto(order);
-    }
-
-    public CartDto updateNote(String guestToken, Long orderItemId, String note) {
-        User user = getCurrentUserOrNull();
-        OrderItem item = requireOrderItem(orderItemId);
-
-        Order order = item.getOrder();
-        ensureCanModifyOrder(order, user, guestToken);
-
-        item.setNote(note);
-        order.setUpdatedAt(LocalDateTime.now());
-
-        return OrderMapper.toCartDto(order);
-    }
-
-    public CartDto updateVariant(String guestToken, Long orderItemId, Long variantId) {
-        User user = getCurrentUserOrNull();
-        OrderItem item = requireOrderItem(orderItemId);
-
-        Order order = item.getOrder();
-        ensureCanModifyOrder(order, user, guestToken);
-
-        if (item.getProduct().getType() != ProductType.PIZZA) {
-            throw new BadRequestException(
-                    "Only pizza items can change variant",
-                    ErrorCode.INVALID_OPERATION,
-                    ErrorContext.of("orderItemId", orderItemId)
-            );
-        }
-
-        requireId(variantId, "variantId", ErrorCode.VARIANT_REQUIRED, "Variant is required");
-
-        PizzaVariant variant = pizzaVariantRepository.findById(variantId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Pizza variant not found",
-                        ErrorCode.VARIANT_NOT_FOUND,
-                        ErrorContext.of("variantId", variantId)
-                ));
-
-        if (!variant.getPizza().getProduct().getId().equals(item.getProduct().getId())) {
-            throw new BadRequestException(
-                    "Variant does not belong to this pizza",
-                    ErrorCode.VARIANT_NOT_BELONG_TO_PIZZA,
-                    ctx("variantId", variantId, "productId", item.getProduct().getId())
-            );
-        }
-
-        item.setPizzaVariant(variant);
-
-        Pizza pizza = pizzaRepository.findByProduct(item.getProduct())
-                .orElseThrow(() -> new NotFoundException(
-                        "Pizza entity not found for product",
-                        ErrorCode.PIZZA_NOT_FOUND,
-                        ErrorContext.of("productId", item.getProduct().getId())
-                ));
-
-        recalcPizzaUnitPrice(item, pizza);
-
-        order.setUpdatedAt(LocalDateTime.now());
-
-        return OrderMapper.toCartDto(order);
-    }
-
-    public CartDto updatePizzaCustomizations(String guestToken,
-                                             Long orderItemId,
-                                             List<Long> removeIngredientIds,
-                                             List<Long> addIngredientIds) {
-        User user = getCurrentUserOrNull();
-        OrderItem item = requireOrderItem(orderItemId);
-
-        Order order = item.getOrder();
-        ensureCanModifyOrder(order, user, guestToken);
-
-        if (item.getProduct().getType() != ProductType.PIZZA) {
-            throw new BadRequestException(
-                    "Only pizza items support customizations",
-                    ErrorCode.INVALID_OPERATION,
-                    ErrorContext.of("orderItemId", orderItemId)
-            );
-        }
-
-        Pizza pizza = pizzaRepository.findByProduct(item.getProduct())
-                .orElseThrow(() -> new NotFoundException(
-                        "Pizza entity not found for product",
-                        ErrorCode.PIZZA_NOT_FOUND,
-                        ErrorContext.of("productId", item.getProduct().getId())
-                ));
-
-        item.getCustomizations().clear();
-        orderItemCustomizationRepository.deleteAll(
-                orderItemCustomizationRepository.findByOrderItem(item)
-        );
-
-        BigDecimal extrasSum = applyPizzaCustomizations(item, pizza, removeIngredientIds, addIngredientIds);
-
-        BigDecimal base = nz(item.getProduct().getBasePrice());
-        BigDecimal variantExtra = (item.getPizzaVariant() != null) ? nz(item.getPizzaVariant().getExtraPrice()) : BigDecimal.ZERO;
-        item.setUnitPrice(base.add(variantExtra).add(extrasSum));
 
         order.setUpdatedAt(LocalDateTime.now());
 
@@ -339,14 +260,14 @@ public class CartService {
             );
         }
 
-        if (phone == null || phone.isBlank()) {
+        if (!StringUtils.hasText(phone)) {
             throw new BadRequestException(
                     "Phone is required",
                     ErrorCode.BAD_REQUEST,
                     ErrorContext.of("field", "phone")
             );
         }
-        if (address == null || address.isBlank()) {
+        if (!StringUtils.hasText(address)) {
             throw new BadRequestException(
                     "Address is required",
                     ErrorCode.BAD_REQUEST,
@@ -379,7 +300,6 @@ public class CartService {
         return OrderMapper.toCartDto(cart);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public CartDto addDrinkToExistingCart(Order order, Long drinkProductId, int quantity, String note) {
         requirePositiveQty(quantity);
 
@@ -404,7 +324,6 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public CartDto addPizzaToExistingCart(
             Order order,
             Long pizzaProductId,
@@ -467,6 +386,77 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
+    private void applyVariantChange(OrderItem item, Long variantId) {
+        if (item.getProduct().getType() != ProductType.PIZZA) {
+            throw new BadRequestException(
+                    "Only pizza items can change variant",
+                    ErrorCode.INVALID_OPERATION,
+                    ErrorContext.of("orderItemId", item.getId())
+            );
+        }
+
+        requireId(variantId, "variantId", ErrorCode.VARIANT_REQUIRED, "Variant is required");
+
+        PizzaVariant variant = pizzaVariantRepository.findById(variantId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Pizza variant not found",
+                        ErrorCode.VARIANT_NOT_FOUND,
+                        ErrorContext.of("variantId", variantId)
+                ));
+
+        if (!variant.getPizza().getProduct().getId().equals(item.getProduct().getId())) {
+            throw new BadRequestException(
+                    "Variant does not belong to this pizza",
+                    ErrorCode.VARIANT_NOT_BELONG_TO_PIZZA,
+                    ctx("variantId", variantId, "productId", item.getProduct().getId())
+            );
+        }
+
+        item.setPizzaVariant(variant);
+
+        Pizza pizza = pizzaRepository.findByProduct(item.getProduct())
+                .orElseThrow(() -> new NotFoundException(
+                        "Pizza entity not found for product",
+                        ErrorCode.PIZZA_NOT_FOUND,
+                        ErrorContext.of("productId", item.getProduct().getId())
+                ));
+
+        recalcPizzaUnitPrice(item, pizza);
+    }
+
+    private void applyCustomizationChange(OrderItem item,
+                                          List<Long> removeIngredientIds,
+                                          List<Long> addIngredientIds) {
+        if (item.getProduct().getType() != ProductType.PIZZA) {
+            throw new BadRequestException(
+                    "Only pizza items support customizations",
+                    ErrorCode.INVALID_OPERATION,
+                    ErrorContext.of("orderItemId", item.getId())
+            );
+        }
+
+        Pizza pizza = pizzaRepository.findByProduct(item.getProduct())
+                .orElseThrow(() -> new NotFoundException(
+                        "Pizza entity not found for product",
+                        ErrorCode.PIZZA_NOT_FOUND,
+                        ErrorContext.of("productId", item.getProduct().getId())
+                ));
+
+        item.getCustomizations().clear();
+        orderItemCustomizationRepository.deleteAll(
+                orderItemCustomizationRepository.findByOrderItem(item)
+        );
+
+        BigDecimal extrasSum = applyPizzaCustomizations(item, pizza, removeIngredientIds, addIngredientIds);
+
+        BigDecimal base = nz(item.getProduct().getBasePrice());
+        BigDecimal variantExtra = (item.getPizzaVariant() != null)
+                ? nz(item.getPizzaVariant().getExtraPrice())
+                : BigDecimal.ZERO;
+
+        item.setUnitPrice(base.add(variantExtra).add(extrasSum));
+    }
+
     private BigDecimal applyPizzaCustomizations(
             OrderItem item,
             Pizza pizza,
@@ -522,31 +512,31 @@ public class CartService {
         var baseByIngredientId = pizza.getIngredients()
                 .stream()
                 .collect(Collectors.toMap(
-                        pi -> pi.getIngredient().getId(),
-                        pi -> pi
+                        pizzaIngredient -> pizzaIngredient.getIngredient().getId(),
+                        pizzaIngredient -> pizzaIngredient
                 ));
 
         var allowedByIngredientId = pizza.getAllowedIngredients()
                 .stream()
                 .collect(Collectors.toMap(
-                        pai -> pai.getIngredient().getId(),
-                        pai -> pai
+                        pizzaAllowedIngredient -> pizzaAllowedIngredient.getIngredient().getId(),
+                        pizzaAllowedIngredient -> pizzaAllowedIngredient
                 ));
 
-        for (Long ingId : removeSet) {
-            var base = baseByIngredientId.get(ingId);
+        for (Long ingredientId : removeSet) {
+            var base = baseByIngredientId.get(ingredientId);
             if (base == null) {
                 throw new BadRequestException(
                         "Ingredient is not in base recipe",
                         ErrorCode.INVALID_CUSTOMIZATION,
-                        ErrorContext.of("ingredientId", ingId)
+                        ErrorContext.of("ingredientId", ingredientId)
                 );
             }
             if (!base.isRemovable()) {
                 throw new ConflictException(
                         "Ingredient cannot be removed",
                         ErrorCode.INGREDIENT_NOT_REMOVABLE,
-                        ErrorContext.of("ingredientId", ingId)
+                        ErrorContext.of("ingredientId", ingredientId)
                 );
             }
 
@@ -601,10 +591,10 @@ public class CartService {
                 ));
 
         BigDecimal extrasSum = item.getCustomizations().stream()
-                .filter(c -> c.getAction() == OrderItemCustomizationAction.ADD)
-                .map(c -> {
-                    if (c.getIngredient() == null) return BigDecimal.ZERO;
-                    return allowedExtraByIngredientId.getOrDefault(c.getIngredient().getId(), BigDecimal.ZERO);
+                .filter(customization -> customization.getAction() == OrderItemCustomizationAction.ADD)
+                .map(customization -> {
+                    if (customization.getIngredient() == null) return BigDecimal.ZERO;
+                    return allowedExtraByIngredientId.getOrDefault(customization.getIngredient().getId(), BigDecimal.ZERO);
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -626,7 +616,7 @@ public class CartService {
                         ErrorCode.CART_FORBIDDEN
                 );
             }
-            if (guestToken == null || !guestToken.equals(order.getGuestToken())) {
+            if (!StringUtils.hasText(guestToken) || !Objects.equals(guestToken, order.getGuestToken())) {
                 throw new ForbiddenException(
                         "You cannot modify another guest cart",
                         ErrorCode.CART_FORBIDDEN
@@ -636,7 +626,7 @@ public class CartService {
     }
 
     private Order mergeGuestCartIntoUserCart(User user, String guestToken) {
-        if (guestToken == null || guestToken.isBlank()) {
+        if (!StringUtils.hasText(guestToken)) {
             return getOrCreateUserCart(user);
         }
 
@@ -676,7 +666,6 @@ public class CartService {
         return userCart;
     }
 
-
     private void requirePositiveQty(int quantity) {
         if (quantity <= 0) {
             throw new BadRequestException(
@@ -688,7 +677,7 @@ public class CartService {
     }
 
     private void requireGuestToken(String guestToken) {
-        if (guestToken == null || guestToken.isBlank()) {
+        if (!StringUtils.hasText(guestToken)) {
             throw new BadRequestException(
                     "Guest token is required",
                     ErrorCode.GUEST_TOKEN_REQUIRED

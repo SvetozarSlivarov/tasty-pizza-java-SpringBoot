@@ -26,13 +26,13 @@ public class AdminUserController {
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public Page<AdminUserDto> list(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false, defaultValue = "active") String show,
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(name = "show", required = false, defaultValue = "active") String visibility,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "page must be >= 0") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "size must be >= 1")
             @Max(value = 200, message = "size must be <= 200") int size
     ) {
-        return adminUserService.list(q, show, PageRequest.of(page, size, Sort.by("id").descending()));
+        return adminUserService.list(query, visibility, PageRequest.of(page, size, Sort.by("id").descending()));
     }
 
     @PatchMapping("/{id}/role")
