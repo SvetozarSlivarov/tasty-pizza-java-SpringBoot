@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -106,7 +105,7 @@ public class CartService {
         ensureProductNotDeleted(product);
         ensureType(product, ProductType.DRINK);
 
-        BigDecimal unitPrice = nz(product.getBasePrice());
+        BigDecimal unitPrice = nullToZero(product.getBasePrice());
 
         OrderItem item = OrderItem.builder()
                 .order(order)
@@ -161,12 +160,12 @@ public class CartService {
             throw new BadRequestException(
                     "Variant does not belong to given pizza",
                     ErrorCode.VARIANT_NOT_BELONG_TO_PIZZA,
-                    ctx("variantId", variantId, "pizzaId", pizza.getId())
+                    buildContext("variantId", variantId, "pizzaId", pizza.getId())
             );
         }
 
-        BigDecimal base = nz(product.getBasePrice());
-        BigDecimal variantExtra = nz(variant.getExtraPrice());
+        BigDecimal base = nullToZero(product.getBasePrice());
+        BigDecimal variantExtra = nullToZero(variant.getExtraPrice());
         BigDecimal unitPrice = base.add(variantExtra);
 
         OrderItem item = OrderItem.builder()
@@ -307,7 +306,7 @@ public class CartService {
         ensureProductNotDeleted(product);
         ensureType(product, ProductType.DRINK);
 
-        BigDecimal unitPrice = nz(product.getBasePrice());
+        BigDecimal unitPrice = nullToZero(product.getBasePrice());
 
         OrderItem item = OrderItem.builder()
                 .order(order)
@@ -358,12 +357,12 @@ public class CartService {
             throw new BadRequestException(
                     "Variant does not belong to given pizza",
                     ErrorCode.VARIANT_NOT_BELONG_TO_PIZZA,
-                    ctx("variantId", variantId, "pizzaId", pizza.getId())
+                    buildContext("variantId", variantId, "pizzaId", pizza.getId())
             );
         }
 
-        BigDecimal base = nz(product.getBasePrice());
-        BigDecimal variantExtra = nz(variant.getExtraPrice());
+        BigDecimal base = nullToZero(product.getBasePrice());
+        BigDecimal variantExtra = nullToZero(variant.getExtraPrice());
         BigDecimal unitPrice = base.add(variantExtra);
 
         OrderItem item = OrderItem.builder()
@@ -408,7 +407,7 @@ public class CartService {
             throw new BadRequestException(
                     "Variant does not belong to this pizza",
                     ErrorCode.VARIANT_NOT_BELONG_TO_PIZZA,
-                    ctx("variantId", variantId, "productId", item.getProduct().getId())
+                    buildContext("variantId", variantId, "productId", item.getProduct().getId())
             );
         }
 
@@ -449,9 +448,9 @@ public class CartService {
 
         BigDecimal extrasSum = applyPizzaCustomizations(item, pizza, removeIngredientIds, addIngredientIds);
 
-        BigDecimal base = nz(item.getProduct().getBasePrice());
+        BigDecimal base = nullToZero(item.getProduct().getBasePrice());
         BigDecimal variantExtra = (item.getPizzaVariant() != null)
-                ? nz(item.getPizzaVariant().getExtraPrice())
+                ? nullToZero(item.getPizzaVariant().getExtraPrice())
                 : BigDecimal.ZERO;
 
         item.setUnitPrice(base.add(variantExtra).add(extrasSum));
@@ -472,7 +471,7 @@ public class CartService {
         for (Long id : removeSet) {
             if (addSet.contains(id)) {
                 throw new BadRequestException(
-                        "Ingredient cannot be both added and removed",
+                        ErrorMessage.INGREDIENT_CANNOT_BE_BOTH_ADDED_AND_REMOVED,
                         ErrorCode.INVALID_CUSTOMIZATION,
                         ErrorContext.of("ingredientId", id)
                 );
@@ -494,14 +493,14 @@ public class CartService {
                 Ingredient ing = byId.get(id);
                 if (ing == null) {
                     throw new NotFoundException(
-                            "Some ingredients do not exist",
+                            ErrorMessage.INGREDIENTS_DO_NOT_EXIST,
                             ErrorCode.INGREDIENT_NOT_FOUND,
                             ErrorContext.of("ingredientId", id)
                     );
                 }
                 if (ing.getDeletedAt() != null) {
                     throw new NotFoundException(
-                            "Ingredient is deleted",
+                            ErrorMessage.INGREDIENT_DELETED,
                             ErrorCode.INGREDIENT_NOT_FOUND,
                             ErrorContext.of("ingredientId", id)
                     );
@@ -527,14 +526,14 @@ public class CartService {
             var base = baseByIngredientId.get(ingredientId);
             if (base == null) {
                 throw new BadRequestException(
-                        "Ingredient is not in base recipe",
+                        ErrorMessage.INGREDIENT_IS_NOT_IN_RECIPE,
                         ErrorCode.INVALID_CUSTOMIZATION,
                         ErrorContext.of("ingredientId", ingredientId)
                 );
             }
             if (!base.isRemovable()) {
                 throw new ConflictException(
-                        "Ingredient cannot be removed",
+                        ErrorMessage.INGREDIENT_NOT_REMOVABLE,
                         ErrorCode.INGREDIENT_NOT_REMOVABLE,
                         ErrorContext.of("ingredientId", ingredientId)
                 );
@@ -557,14 +556,14 @@ public class CartService {
             var allowed = allowedByIngredientId.get(ingId);
             if (allowed == null) {
                 throw new BadRequestException(
-                        "Ingredient is not allowed for this pizza",
+                        ErrorMessage.INGREDIENT_NOT_ALLOWED,
                         ErrorCode.INVALID_CUSTOMIZATION,
                         ErrorContext.of("ingredientId", ingId)
                 );
             }
 
             Ingredient ingredient = allowed.getIngredient();
-            BigDecimal extra = nz(allowed.getExtraPrice());
+            BigDecimal extra = nullToZero(allowed.getExtraPrice());
             extrasSum = extrasSum.add(extra);
 
             OrderItemCustomization customization = OrderItemCustomization.builder()
@@ -581,13 +580,13 @@ public class CartService {
     }
 
     private void recalcPizzaUnitPrice(OrderItem item, Pizza pizza) {
-        BigDecimal base = nz(item.getProduct().getBasePrice());
-        BigDecimal variantExtra = (item.getPizzaVariant() != null) ? nz(item.getPizzaVariant().getExtraPrice()) : BigDecimal.ZERO;
+        BigDecimal base = nullToZero(item.getProduct().getBasePrice());
+        BigDecimal variantExtra = (item.getPizzaVariant() != null) ? nullToZero(item.getPizzaVariant().getExtraPrice()) : BigDecimal.ZERO;
 
         Map<Long, BigDecimal> allowedExtraByIngredientId = pizza.getAllowedIngredients().stream()
                 .collect(Collectors.toMap(
                         pai -> pai.getIngredient().getId(),
-                        pai -> nz(pai.getExtraPrice())
+                        pai -> nullToZero(pai.getExtraPrice())
                 ));
 
         BigDecimal extrasSum = item.getCustomizations().stream()
@@ -605,20 +604,20 @@ public class CartService {
         if (currentUser != null) {
             if (order.getUser() == null || !order.getUser().getId().equals(currentUser.getId())) {
                 throw new ForbiddenException(
-                        "You cannot modify another user's cart",
+                        ErrorMessage.CANNOT_MODIFY_ANOTHER_USER_CART,
                         ErrorCode.CART_FORBIDDEN
                 );
             }
         } else {
             if (order.getUser() != null) {
                 throw new ForbiddenException(
-                        "You cannot modify a user cart as guest",
+                        ErrorMessage.CANNOT_MODIFY_USER_CART,
                         ErrorCode.CART_FORBIDDEN
                 );
             }
             if (!StringUtils.hasText(guestToken) || !Objects.equals(guestToken, order.getGuestToken())) {
                 throw new ForbiddenException(
-                        "You cannot modify another guest cart",
+                        ErrorMessage.CANNOT_MODIFY_ANOTHER_GUEST_CART,
                         ErrorCode.CART_FORBIDDEN
                 );
             }
@@ -669,7 +668,7 @@ public class CartService {
     private void requirePositiveQty(int quantity) {
         if (quantity <= 0) {
             throw new BadRequestException(
-                    "Quantity must be positive",
+                    ErrorMessage.POSITIVE_QUANTITY,
                     ErrorCode.INVALID_QUANTITY,
                     ErrorContext.of("quantity", quantity)
             );
@@ -679,7 +678,7 @@ public class CartService {
     private void requireGuestToken(String guestToken) {
         if (!StringUtils.hasText(guestToken)) {
             throw new BadRequestException(
-                    "Guest token is required",
+                    ErrorMessage.GUEST_TOKEN_REQUIRED,
                     ErrorCode.GUEST_TOKEN_REQUIRED
             );
         }
@@ -700,7 +699,7 @@ public class CartService {
 
         return productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException(
-                        "Product not found",
+                        ErrorMessage.PRODUCT_NOT_FOUND,
                         ErrorCode.PRODUCT_NOT_FOUND,
                         ErrorContext.of("productId", productId)
                 ));
@@ -711,7 +710,7 @@ public class CartService {
 
         return orderItemRepository.findById(orderItemId)
                 .orElseThrow(() -> new NotFoundException(
-                        "Order item not found",
+                        ErrorMessage.ORDER_ITEM_NOT_FOUND,
                         ErrorCode.ORDER_ITEM_NOT_FOUND,
                         ErrorContext.of("orderItemId", orderItemId)
                 ));
@@ -720,7 +719,7 @@ public class CartService {
     private void ensureProductNotDeleted(Product p) {
         if (p.getDeletedAt() != null) {
             throw new ConflictException(
-                    "Product is deleted",
+                    ErrorMessage.PRODUCT_DELETED,
                     ErrorCode.PRODUCT_DELETED,
                     ErrorContext.of("productId", p.getId())
             );
@@ -730,27 +729,33 @@ public class CartService {
     private void ensureType(Product p, ProductType expected) {
         if (p.getType() != expected) {
             throw new BadRequestException(
-                    "Invalid product type",
+                    ErrorMessage.INVALID_PRODUCT_TYPE,
                     ErrorCode.INVALID_PRODUCT_TYPE,
-                    ctx("productId", p.getId(), "expected", expected.name(), "actual", p.getType().name())
+                    buildContext("productId", p.getId(), "expected", expected.name(), "actual", p.getType().name())
             );
         }
     }
 
-    private BigDecimal nz(BigDecimal v) {
-        return v != null ? v : BigDecimal.ZERO;
+    private BigDecimal nullToZero(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 
-    private Map<String, Object> ctx(Object... kv) {
-        Map<String, Object> m = new HashMap<>();
-        if (kv == null) return m;
-        for (int i = 0; i + 1 < kv.length; i += 2) {
-            Object k = kv[i];
-            Object v = kv[i + 1];
-            if (k != null && v != null) {
-                m.put(String.valueOf(k), v);
+    private Map<String, Object> buildContext(Object... keyValuePairs) {
+        Map<String, Object> context = new HashMap<>();
+
+        if (keyValuePairs == null) {
+            return context;
+        }
+
+        for (int i = 0; i + 1 < keyValuePairs.length; i += 2) {
+            Object key = keyValuePairs[i];
+            Object value = keyValuePairs[i + 1];
+
+            if (key != null && value != null) {
+                context.put(String.valueOf(key), value);
             }
         }
-        return m;
+
+        return context;
     }
 }

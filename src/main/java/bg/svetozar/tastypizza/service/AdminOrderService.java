@@ -37,19 +37,19 @@ public class AdminOrderService {
     private final OrderItemRepository orderItemRepository;
 
     @Transactional(readOnly = true)
-    public Page<AdminOrderListDto> list(String statusStr, String q, Long userId, Pageable pageable) {
+    public Page<AdminOrderListDto> list(String statusStr, String query, Long userId, Pageable pageable) {
         OrderStatus status = parseStatusOrThrow(statusStr);
-        String qq = normalize(q);
+        String normalizedQuery = normalize(query);
 
         if (userId != null && userId <= 0) {
             throw new BadRequestException(
-                    "Invalid userId",
+                    ErrorMessage.INVALID_USER_ID,
                     ErrorCode.BAD_REQUEST,
                     ErrorContext.of("userId", userId)
             );
         }
 
-        return orderRepository.adminSearch(status, qq, userId, pageable);
+        return orderRepository.adminSearch(status, normalizedQuery, userId, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -58,7 +58,7 @@ public class AdminOrderService {
 
         Order order = orderRepository.findAdminDetailById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Order not found",
+                        ErrorMessage.ORDER_NOT_FOUND,
                         ErrorCode.ORDER_NOT_FOUND,
                         ErrorContext.of("orderId", id)
                 ));
@@ -131,21 +131,21 @@ public class AdminOrderService {
 
         if (order.getStatus() == OrderStatus.DELIVERED) {
             throw new ConflictException(
-                    "Cannot cancel a delivered order",
+                    ErrorMessage.ORDER_ALREADY_DELIVERED,
                     ErrorCode.ORDER_ALREADY_DELIVERED,
                     ErrorContext.of("orderId", orderId)
             );
         }
         if (order.getStatus() == OrderStatus.CANCELLED) {
             throw new ConflictException(
-                    "Order is already cancelled",
+                    ErrorMessage.ORDER_ALREADY_CANCELLED,
                     ErrorCode.ORDER_ALREADY_CANCELLED,
                     ErrorContext.of("orderId", orderId)
             );
         }
         if (order.getStatus() == OrderStatus.CART) {
             throw new BadRequestException(
-                    "Cannot cancel a cart",
+                    ErrorMessage.ORDER_IS_CART,
                     ErrorCode.ORDER_IS_CART,
                     ErrorContext.of("orderId", orderId)
             );
@@ -155,52 +155,52 @@ public class AdminOrderService {
         return new AdminOrderStatusUpdateDto(order.getId(), order.getStatus(), order.getUpdatedAt());
     }
 
-    private AdminOrderItemDto mapItem(OrderItem oi) {
+    private AdminOrderItemDto mapItem(OrderItem orderItem) {
         List<AdminOrderItemCustomizationDto> customizations =
-                (oi.getCustomizations() == null ? List.<OrderItemCustomization>of() : oi.getCustomizations())
+                (orderItem.getCustomizations() == null ? List.<OrderItemCustomization>of() : orderItem.getCustomizations())
                         .stream()
-                        .sorted(Comparator.comparing(c -> c.getId() == null ? Long.MAX_VALUE : c.getId()))
-                        .map(c -> new AdminOrderItemCustomizationDto(
-                                c.getAction() != null ? c.getAction().name() : null,
-                                (c.getIngredient() != null) ? c.getIngredient().getName() : null
+                        .sorted(Comparator.comparing(orderItemCustomization -> orderItemCustomization.getId() == null ? Long.MAX_VALUE : orderItemCustomization.getId()))
+                        .map(orderItemCustomization -> new AdminOrderItemCustomizationDto(
+                                orderItemCustomization.getAction() != null ? orderItemCustomization.getAction().name() : null,
+                                (orderItemCustomization.getIngredient() != null) ? orderItemCustomization.getIngredient().getName() : null
                         ))
                         .toList();
 
-        BigDecimal unitPrice = (oi.getUnitPrice() == null) ? BigDecimal.ZERO : oi.getUnitPrice();
-        BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(oi.getQuantity()));
+        BigDecimal unitPrice = (orderItem.getUnitPrice() == null) ? BigDecimal.ZERO : orderItem.getUnitPrice();
+        BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(orderItem.getQuantity()));
 
         String name = null;
         ProductType type = null;
         String imageUrl = null;
 
-        if (oi.getProduct() != null) {
-            name = oi.getProduct().getName();
-            type = oi.getProduct().getType();
-            imageUrl = oi.getProduct().getImageUrl();
+        if (orderItem.getProduct() != null) {
+            name = orderItem.getProduct().getName();
+            type = orderItem.getProduct().getType();
+            imageUrl = orderItem.getProduct().getImageUrl();
         }
 
-        String variantLabel = (oi.getPizzaVariant() != null)
-                ? oi.getPizzaVariant().getDough().name() + " " + oi.getPizzaVariant().getSize().name()
+        String variantLabel = (orderItem.getPizzaVariant() != null)
+                ? orderItem.getPizzaVariant().getDough().name() + " " + orderItem.getPizzaVariant().getSize().name()
                 : null;
 
         return new AdminOrderItemDto(
-                oi.getId(),
+                orderItem.getId(),
                 name,
                 type,
                 imageUrl,
                 variantLabel,
-                oi.getQuantity(),
+                orderItem.getQuantity(),
                 unitPrice,
                 lineTotal,
-                oi.getNote(),
+                orderItem.getNote(),
                 customizations
         );
     }
 
-    private static String normalize(String q) {
-        if (q == null) return null;
-        String t = q.trim();
-        return t.isEmpty() ? null : t;
+    private static String normalize(String query) {
+        if (query == null) return null;
+        String trimmedQuery = query.trim();
+        return trimmedQuery.isEmpty() ? null : trimmedQuery;
     }
 
     private OrderStatus parseStatusOrThrow(String statusStr) {
@@ -213,7 +213,7 @@ public class AdminOrderService {
             return OrderStatus.valueOf(s.toUpperCase());
         } catch (IllegalArgumentException ex) {
             throw new BadRequestException(
-                    "Invalid status filter",
+                    ErrorMessage.INVALID_STATUS_FILTER,
                     ErrorCode.INVALID_STATUS_FILTER,
                     ErrorContext.of("status", statusStr)
             );
@@ -223,7 +223,7 @@ public class AdminOrderService {
     private void requireOrderId(Long orderId) {
         if (orderId == null || orderId <= 0) {
             throw new BadRequestException(
-                    "Invalid order id",
+                    ErrorMessage.INVALID_ORDER_ID,
                     ErrorCode.INVALID_ORDER_ID,
                     ErrorContext.of("orderId", orderId)
             );
@@ -235,7 +235,7 @@ public class AdminOrderService {
 
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException(
-                        "Order not found",
+                        ErrorMessage.ORDER_NOT_FOUND,
                         ErrorCode.ORDER_NOT_FOUND,
                         ErrorContext.of("orderId", orderId)
                 ));
@@ -244,7 +244,7 @@ public class AdminOrderService {
     private void requireStatus(Order order, OrderStatus expected) {
         if (order.getStatus() != expected) {
             throw new ConflictException(
-                    "Invalid status transition",
+                    ErrorMessage.INVALID_STATUS_TRANSITION,
                     ErrorCode.INVALID_STATUS_TRANSITION,
                     Map.of(
                             "orderId", order.getId(),
@@ -262,10 +262,10 @@ public class AdminOrderService {
         order.setUpdatedAt(now);
         orderRepository.save(order);
 
-        OrderStatusChange sc = new OrderStatusChange();
-        sc.setOrder(order);
-        sc.setStatus(newStatus);
-        sc.setChangedAt(now);
-        statusChangeRepository.save(sc);
+        OrderStatusChange orderStatusChange = new OrderStatusChange();
+        orderStatusChange.setOrder(order);
+        orderStatusChange.setStatus(newStatus);
+        orderStatusChange.setChangedAt(now);
+        statusChangeRepository.save(orderStatusChange);
     }
 }

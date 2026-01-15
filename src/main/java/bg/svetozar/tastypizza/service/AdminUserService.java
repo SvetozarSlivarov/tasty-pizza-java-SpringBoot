@@ -13,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -24,8 +25,8 @@ public class AdminUserService {
     private final UserRepository userRepository;
 
     public Page<AdminUserDto> list(String q, String show, Pageable pageable) {
-        String s = normalizeShow(show);
-        return userRepository.adminSearch(q, s, pageable).map(this::toDto);
+        String showFilter = normalizeShow(show);
+        return userRepository.adminSearch(q, showFilter, pageable).map(this::toDto);
     }
 
     @Transactional
@@ -36,7 +37,7 @@ public class AdminUserService {
         Long currentUserId = getCurrentUserId();
         if (currentUserId != null && currentUserId.equals(id)) {
             throw new ForbiddenException(
-                    "You cannot change your own role.",
+                    ErrorMessage.ADMIN_CANNOT_CHANGE_OWN_ROLE,
                     ErrorCode.ADMIN_CANNOT_CHANGE_OWN_ROLE,
                     ErrorContext.of("userId", id)
             );
@@ -44,14 +45,14 @@ public class AdminUserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "User not found.",
+                        ErrorMessage.USER_NOT_FOUND,
                         ErrorCode.USER_NOT_FOUND,
                         ErrorContext.of("userId", id)
                 ));
 
         if (user.isDeleted()) {
             throw new ConflictException(
-                    "User is deleted and cannot be modified.",
+                    ErrorMessage.USER_IS_DELETED_CANNOT_MODIFIED,
                     ErrorCode.USER_DELETED,
                     ErrorContext.of("userId", id)
             );
@@ -72,7 +73,7 @@ public class AdminUserService {
         Long currentUserId = getCurrentUserId();
         if (currentUserId != null && currentUserId.equals(id)) {
             throw new ForbiddenException(
-                    "You cannot delete your own account.",
+                    ErrorMessage.ADMIN_CANNOT_DELETE_SELF,
                     ErrorCode.ADMIN_CANNOT_DELETE_SELF,
                     ErrorContext.of("userId", id)
             );
@@ -80,13 +81,12 @@ public class AdminUserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "User not found.",
+                        ErrorMessage.USER_NOT_FOUND,
                         ErrorCode.USER_NOT_FOUND,
                         ErrorContext.of("userId", id)
                 ));
 
         if (user.isDeleted()) {
-            // idempotent
             return toDto(user);
         }
 
@@ -103,13 +103,12 @@ public class AdminUserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "User not found.",
+                        ErrorMessage.USER_NOT_FOUND,
                         ErrorCode.USER_NOT_FOUND,
                         ErrorContext.of("userId", id)
                 ));
 
         if (!user.isDeleted()) {
-            // idempotent
             return toDto(user);
         }
 
@@ -123,7 +122,7 @@ public class AdminUserService {
     private void validateId(Long id) {
         if (id == null || id <= 0) {
             throw new BadRequestException(
-                    "Invalid user id.",
+                    ErrorMessage.INVALID_USER_ID,
                     ErrorCode.INVALID_USER_ID,
                     ErrorContext.of("userId", id)
             );
@@ -133,22 +132,22 @@ public class AdminUserService {
     private void validateRole(UserRole role) {
         if (role == null) {
             throw new BadRequestException(
-                    "Role is required.",
+                    ErrorMessage.ROLE_REQUIRED,
                     ErrorCode.ROLE_REQUIRED
             );
         }
     }
 
-    private AdminUserDto toDto(User u) {
+    private AdminUserDto toDto(User user) {
         return new AdminUserDto(
-                u.getId(),
-                u.getUsername(),
-                u.getFullname(),
-                u.getRole(),
-                u.isDeleted(),
-                u.getDeletedAt(),
-                u.getTokenVersion(),
-                u.getCreatedAt()
+                user.getId(),
+                user.getUsername(),
+                user.getFullname(),
+                user.getRole(),
+                user.isDeleted(),
+                user.getDeletedAt(),
+                user.getTokenVersion(),
+                user.getCreatedAt()
         );
     }
 
@@ -165,17 +164,17 @@ public class AdminUserService {
         return null;
     }
     private String normalizeShow(String show) {
-        String s = (show == null || show.isBlank())
+        String showFilter = (!StringUtils.hasText(show))
                 ? "active"
                 : show.trim().toLowerCase();
 
-        if (!s.equals("active") && !s.equals("deleted") && !s.equals("all")) {
+        if (!showFilter.equals("active") && !showFilter.equals("deleted") && !showFilter.equals("all")) {
             throw new BadRequestException(
-                    "Invalid show filter. Allowed: active, deleted, all.",
+                    ErrorMessage.INVALID_SHOW_FILTER,
                     ErrorCode.INVALID_SHOW_FILTER,
                     ErrorContext.of("show", show)
             );
         }
-        return s;
+        return showFilter;
     }
 }

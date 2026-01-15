@@ -18,6 +18,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class AuthService {
 
         if (userRepository.existsByUsername(username)) {
             throw new ConflictException(
-                    "Username is already taken",
+                    ErrorMessage.USERNAME_ALREADY_TAKEN,
                     ErrorCode.USERNAME_ALREADY_TAKEN,
                     ErrorContext.of("username", username)
             );
@@ -75,7 +76,7 @@ public class AuthService {
 
             if (user.isDeleted()) {
                 throw new ForbiddenException(
-                        "User is deleted",
+                        ErrorMessage.USER_DELETED,
                         ErrorCode.USER_DELETED,
                         ErrorContext.of("userId", user.getId())
                 );
@@ -88,15 +89,15 @@ public class AuthService {
 
         } catch (AuthenticationException ex) {
             throw new UnauthorizedException(
-                    "Invalid username or password"
+                    ErrorMessage.INVALID_USERNAME_PASSWORD
             );
         }
     }
 
     public Tokens refreshToken(String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) {
+        if (!StringUtils.hasText(refreshToken)) {
             throw new BadRequestException(
-                    "Refresh token is required",
+                    ErrorMessage.REQUIRED_REFRESH_TOKEN,
                     ErrorCode.BAD_REQUEST
             );
         }
@@ -105,9 +106,8 @@ public class AuthService {
         try {
             username = jwtService.extractUsername(refreshToken);
         } catch (JwtException ex) {
-            // не издаваме детайли
             throw new UnauthorizedException(
-                    "Invalid refresh token"
+                    ErrorMessage.INVALID_REFRESH_TOKEN
             );
         }
 
@@ -116,14 +116,14 @@ public class AuthService {
             userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
         } catch (UsernameNotFoundException ex) {
             throw new UnauthorizedException(
-                    "Invalid refresh token"
+                    ErrorMessage.INVALID_REFRESH_TOKEN
             );
         }
 
         User user = userDetails.getUser();
         if (user != null && user.isDeleted()) {
             throw new ForbiddenException(
-                    "User is deleted",
+                    ErrorMessage.USER_DELETED,
                     ErrorCode.USER_DELETED,
                     ErrorContext.of("userId", user.getId())
             );
@@ -131,7 +131,7 @@ public class AuthService {
 
         if (!jwtService.isRefreshTokenValid(refreshToken, userDetails)) {
             throw new UnauthorizedException(
-                    "Invalid refresh token"
+                    ErrorMessage.INVALID_REFRESH_TOKEN
             );
         }
 
