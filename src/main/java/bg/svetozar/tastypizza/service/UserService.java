@@ -27,7 +27,7 @@ public class UserService {
         if (auth == null || !auth.isAuthenticated()
                 || "anonymousUser".equals(auth.getPrincipal())) {
             throw new UnauthorizedException(
-                    "Not authenticated",
+                    ErrorMessage.NOT_AUTHENTICATED,
                     ErrorCode.UNAUTHORIZED
             );
         }
@@ -36,7 +36,7 @@ public class UserService {
 
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UnauthorizedException(
-                        "User not found",
+                        ErrorMessage.USER_NOT_FOUND,
                         ErrorCode.USER_NOT_FOUND,
                         ErrorContext.of("username", username)
                 ));
@@ -63,7 +63,7 @@ public class UserService {
 
             if (userRepository.existsByUsername(request.username())) {
                 throw new ConflictException(
-                        "Username already taken",
+                        ErrorMessage.USERNAME_ALREADY_TAKEN,
                         ErrorCode.USERNAME_ALREADY_TAKEN,
                         ErrorContext.of("username", request.username())
                 );
@@ -96,7 +96,7 @@ public class UserService {
 
         if (userRepository.existsByUsername(newUsername)) {
             throw new ConflictException(
-                    "Username already taken",
+                    ErrorMessage.USERNAME_ALREADY_TAKEN,
                     ErrorCode.USERNAME_ALREADY_TAKEN,
                     ErrorContext.of("username", newUsername)
             );
@@ -114,7 +114,7 @@ public class UserService {
 
         if (!passwordEncoder.matches(req.currentPassword(), user.getPassword())) {
             throw new BadRequestException(
-                    "Invalid current password",
+                    ErrorMessage.INVALID_CURRENT_PASSWORD,
                     ErrorCode.INVALID_CREDENTIALS
             );
         }

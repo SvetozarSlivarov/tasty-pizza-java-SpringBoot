@@ -1,6 +1,7 @@
 package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.ErrorCode;
+import bg.svetozar.tastypizza.exception.ErrorMessage;
 import bg.svetozar.tastypizza.exception.NotFoundException;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientDto;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientRequest;
@@ -91,13 +92,13 @@ public class IngredientService {
         if (isAdmin()) {
             ingredient = ingredientRepository.findByIdWithType(id)
                     .orElseThrow(() -> new NotFoundException(
-                            "Ingredient not found: " + id,
+                            ErrorMessage.INGREDIENT_NOT_FOUND + id,
                             ErrorCode.INGREDIENT_NOT_FOUND
                     ));
         } else {
             ingredient = ingredientRepository.findByIdAndDeletedFalseWithType(id)
                     .orElseThrow(() -> new NotFoundException(
-                            "Ingredient not found or deleted: " + id,
+                            ErrorMessage.INGREDIENT_NOT_FOUND_OR_DELETE + id,
                             ErrorCode.INGREDIENT_NOT_FOUND
                     ));
         }
@@ -109,7 +110,7 @@ public class IngredientService {
     public IngredientWithTypeDto create(IngredientRequest dto) {
         IngredientType type = ingredientTypeRepository.findById(dto.typeId())
                 .orElseThrow(() -> new NotFoundException(
-                        "Ingredient type not found: " + dto.typeId(),
+                        ErrorMessage.INGREDIENT_NOT_FOUND + dto.typeId(),
                         ErrorCode.INGREDIENT_TYPE_NOT_FOUND
                 ));
 
@@ -127,13 +128,13 @@ public class IngredientService {
     public IngredientWithTypeDto update(Long id, IngredientRequest dto) {
         Ingredient ingredient = ingredientRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Ingredient not found: " + id,
+                        ErrorMessage.INGREDIENT_NOT_FOUND + id,
                         ErrorCode.INGREDIENT_NOT_FOUND
                 ));
 
         IngredientType type = ingredientTypeRepository.findById(dto.typeId())
                 .orElseThrow(() -> new NotFoundException(
-                        "Ingredient type not found: " + dto.typeId(),
+                        ErrorMessage.INGREDIENT_TYPE_NOT_FOUND + dto.typeId(),
                         ErrorCode.INGREDIENT_TYPE_NOT_FOUND
                 ));
 
@@ -146,7 +147,7 @@ public class IngredientService {
     public void softDelete(Long id) {
         Ingredient ingredient = ingredientRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Ingredient not found: " + id,
+                        ErrorMessage.INGREDIENT_NOT_FOUND + id,
                         ErrorCode.INGREDIENT_NOT_FOUND
                 ));
 
@@ -157,7 +158,7 @@ public class IngredientService {
     public void restore(Long id) {
         Ingredient ingredient = ingredientRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Ingredient not found: " + id,
+                        ErrorMessage.INGREDIENT_NOT_FOUND + id,
                         ErrorCode.INGREDIENT_NOT_FOUND
                 ));
 

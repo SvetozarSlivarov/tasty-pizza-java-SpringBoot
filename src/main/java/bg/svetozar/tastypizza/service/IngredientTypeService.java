@@ -1,10 +1,6 @@
 package bg.svetozar.tastypizza.service;
 
-import bg.svetozar.tastypizza.exception.BadRequestException;
-import bg.svetozar.tastypizza.exception.ConflictException;
-import bg.svetozar.tastypizza.exception.ErrorCode;
-import bg.svetozar.tastypizza.exception.ErrorContext;
-import bg.svetozar.tastypizza.exception.NotFoundException;
+import bg.svetozar.tastypizza.exception.*;
 import bg.svetozar.tastypizza.model.entity.IngredientType;
 import bg.svetozar.tastypizza.repository.IngredientRepository;
 import bg.svetozar.tastypizza.repository.IngredientTypeRepository;
@@ -29,7 +25,7 @@ public class IngredientTypeService {
     public IngredientType findById(Long id) {
         return ingredientTypeRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Ingredient type not found: " + id,
+                        ErrorMessage.INGREDIENT_TYPE_NOT_FOUND + id,
                         ErrorCode.INGREDIENT_TYPE_NOT_FOUND,
                         ErrorContext.of("id", id)
                 ));
@@ -40,7 +36,7 @@ public class IngredientTypeService {
 
         if (ingredientTypeRepository.existsByNameIgnoreCase(normalizedName)) {
             throw new ConflictException(
-                    "Ingredient type already exists: " + normalizedName,
+                    ErrorMessage.INGREDIENT_TYPE_ALREADY_EXISTS + normalizedName,
                     ErrorCode.INGREDIENT_TYPE_ALREADY_EXISTS,
                     ErrorContext.of("name", normalizedName)
             );
@@ -63,7 +59,7 @@ public class IngredientTypeService {
 
         if (nameTaken && !sameAsCurrent) {
             throw new ConflictException(
-                    "Ingredient type already exists: " + normalizedName,
+                    ErrorMessage.INGREDIENT_TYPE_ALREADY_EXISTS + normalizedName,
                     ErrorCode.INGREDIENT_TYPE_ALREADY_EXISTS,
                     ErrorContext.of("name", normalizedName)
             );
@@ -77,7 +73,7 @@ public class IngredientTypeService {
         long used = ingredientRepository.countByType_Id(id);
         if (used > 0) {
             throw new ConflictException(
-                    "Ingredient type is in use: " + id,
+                    ErrorMessage.INGREDIENT_TYPE_IN_USE + id,
                     ErrorCode.TYPE_IN_USE,
                     ErrorContext.of("id", id, "usedCount", used)
             );
@@ -93,7 +89,7 @@ public class IngredientTypeService {
         int deleted = ingredientTypeRepository.deleteAllByNameIgnoreCase(normalizedName);
         if (deleted == 0) {
             throw new NotFoundException(
-                    "Ingredient type not found: " + normalizedName,
+                    ErrorMessage.INGREDIENT_TYPE_NOT_FOUND + normalizedName,
                     ErrorCode.INGREDIENT_TYPE_NOT_FOUND,
                     ErrorContext.of("name", normalizedName)
             );
@@ -103,7 +99,7 @@ public class IngredientTypeService {
     private String normalizeName(String name) {
         if (name == null || name.isBlank()) {
             throw new BadRequestException(
-                    "Ingredient type name cannot be empty",
+                    ErrorMessage.INGREDIENT_TYPE_NAME_CANNOT_BE_EMPTY,
                     ErrorCode.BAD_REQUEST
             );
         }

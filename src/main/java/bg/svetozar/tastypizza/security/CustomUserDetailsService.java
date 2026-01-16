@@ -1,5 +1,6 @@
 package bg.svetozar.tastypizza.security;
 
+import bg.svetozar.tastypizza.exception.ErrorMessage;
 import bg.svetozar.tastypizza.model.entity.User;
 import bg.svetozar.tastypizza.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository
                 .findByUsernameAndDeletedFalse(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username + " or deleted"));
+                .orElseThrow(() -> new UsernameNotFoundException(ErrorMessage.USER_NOT_FOUND_OR_DELETED +  username));
 
         return new CustomUserDetails(user);
     }

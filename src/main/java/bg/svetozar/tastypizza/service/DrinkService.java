@@ -1,6 +1,7 @@
 package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.ErrorCode;
+import bg.svetozar.tastypizza.exception.ErrorMessage;
 import bg.svetozar.tastypizza.exception.NotFoundException;
 import bg.svetozar.tastypizza.model.dto.drink.DrinkDto;
 import bg.svetozar.tastypizza.model.dto.drink.DrinkRequest;
@@ -39,14 +40,13 @@ public class DrinkService {
     public DrinkDto getById(Long id) {
         Drink drink = drinkRepository.findByIdLight(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Drink not found: " + id,
+                        ErrorMessage.DRINK_NOT_FOUND + id,
                         ErrorCode.DRINK_NOT_FOUND
                 ));
 
         return DrinkMapper.toDrinkDto(drink);
     }
 
-    // ---------- CREATE ----------
     public DrinkDto create(DrinkRequest request) {
         Product product = productService.createProduct(
                 request.name(),
@@ -65,11 +65,10 @@ public class DrinkService {
         return DrinkMapper.toDrinkDto(drink);
     }
 
-    // ---------- UPDATE ----------
     public DrinkDto update(Long id, DrinkRequest request) {
         Drink drink = drinkRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Drink not found: " + id,
+                        ErrorMessage.DRINK_NOT_FOUND + id,
                         ErrorCode.DRINK_NOT_FOUND
                 ));
 
@@ -91,7 +90,7 @@ public class DrinkService {
     public void softDelete(Long id) {
         Drink drink = drinkRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Drink not found: " + id,
+                        ErrorMessage.DRINK_NOT_FOUND + id,
                         ErrorCode.DRINK_NOT_FOUND
                 ));
 
@@ -101,7 +100,7 @@ public class DrinkService {
     public void restoreDeletedDrink(Long id) {
         Drink drink = drinkRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Drink not found: " + id,
+                        ErrorMessage.DRINK_NOT_FOUND + id,
                         ErrorCode.DRINK_NOT_FOUND
                 ));
 

@@ -144,21 +144,21 @@ public class CartService {
 
         Pizza pizza = pizzaRepository.findByProduct(product)
                 .orElseThrow(() -> new NotFoundException(
-                        "Pizza entity not found for product",
+                        ErrorMessage.PIZZA_ENTITY_NOT_FOUND_PRODUCT,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("productId", product.getId())
                 ));
 
         PizzaVariant variant = pizzaVariantRepository.findById(variantId)
                 .orElseThrow(() -> new NotFoundException(
-                        "Pizza variant not found",
+                        ErrorMessage.PIZZA_VARIANT_NOT_FOUND,
                         ErrorCode.VARIANT_NOT_FOUND,
                         ErrorContext.of("variantId", variantId)
                 ));
 
         if (!variant.getPizza().getId().equals(pizza.getId())) {
             throw new BadRequestException(
-                    "Variant does not belong to given pizza",
+                    ErrorMessage.PIZZA_VARIANT_NOT_FOUND_FOR_PIZZA,
                     ErrorCode.VARIANT_NOT_BELONG_TO_PIZZA,
                     buildContext("variantId", variantId, "pizzaId", pizza.getId())
             );
@@ -253,7 +253,7 @@ public class CartService {
 
         if (cart.getStatus() != OrderStatus.CART) {
             throw new BadRequestException(
-                    "Order is not a cart",
+                    ErrorMessage.ORDER_IS_NOT_CART,
                     ErrorCode.INVALID_OPERATION,
                     ErrorContext.of("orderId", cart.getId())
             );
@@ -261,14 +261,14 @@ public class CartService {
 
         if (!StringUtils.hasText(phone)) {
             throw new BadRequestException(
-                    "Phone is required",
+                    ErrorMessage.REQUIRED_PHONE,
                     ErrorCode.BAD_REQUEST,
                     ErrorContext.of("field", "phone")
             );
         }
         if (!StringUtils.hasText(address)) {
             throw new BadRequestException(
-                    "Address is required",
+                    ErrorMessage.REQUIRED_ADDRESS,
                     ErrorCode.BAD_REQUEST,
                     ErrorContext.of("field", "address")
             );
@@ -276,7 +276,7 @@ public class CartService {
 
         if (cart.getItems() == null || cart.getItems().isEmpty()) {
             throw new ConflictException(
-                    "Cannot checkout empty cart",
+                    ErrorMessage.CANNOT_CHECKOUT_EMPTY_CART,
                     ErrorCode.CART_EMPTY
             );
         }
@@ -341,21 +341,21 @@ public class CartService {
 
         Pizza pizza = pizzaRepository.findByProduct(product)
                 .orElseThrow(() -> new NotFoundException(
-                        "Pizza entity not found for product",
+                        ErrorMessage.PIZZA_ENTITY_NOT_FOUND_PRODUCT,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("productId", product.getId())
                 ));
 
         PizzaVariant variant = pizzaVariantRepository.findById(variantId)
                 .orElseThrow(() -> new NotFoundException(
-                        "Pizza variant not found",
+                        ErrorMessage.PIZZA_VARIANT_NOT_FOUND,
                         ErrorCode.VARIANT_NOT_FOUND,
                         ErrorContext.of("variantId", variantId)
                 ));
 
         if (!variant.getPizza().getId().equals(pizza.getId())) {
             throw new BadRequestException(
-                    "Variant does not belong to given pizza",
+                    ErrorMessage.PIZZA_VARIANT_NOT_FOUND_FOR_PIZZA,
                     ErrorCode.VARIANT_NOT_BELONG_TO_PIZZA,
                     buildContext("variantId", variantId, "pizzaId", pizza.getId())
             );
@@ -388,7 +388,7 @@ public class CartService {
     private void applyVariantChange(OrderItem item, Long variantId) {
         if (item.getProduct().getType() != ProductType.PIZZA) {
             throw new BadRequestException(
-                    "Only pizza items can change variant",
+                    ErrorMessage.ONLY_PIZZA_CHANGE_VARIANT,
                     ErrorCode.INVALID_OPERATION,
                     ErrorContext.of("orderItemId", item.getId())
             );
@@ -398,14 +398,14 @@ public class CartService {
 
         PizzaVariant variant = pizzaVariantRepository.findById(variantId)
                 .orElseThrow(() -> new NotFoundException(
-                        "Pizza variant not found",
+                        ErrorMessage.PIZZA_VARIANT_NOT_FOUND,
                         ErrorCode.VARIANT_NOT_FOUND,
                         ErrorContext.of("variantId", variantId)
                 ));
 
         if (!variant.getPizza().getProduct().getId().equals(item.getProduct().getId())) {
             throw new BadRequestException(
-                    "Variant does not belong to this pizza",
+                    ErrorMessage.PIZZA_VARIANT_NOT_FOUND_FOR_PIZZA,
                     ErrorCode.VARIANT_NOT_BELONG_TO_PIZZA,
                     buildContext("variantId", variantId, "productId", item.getProduct().getId())
             );
@@ -415,7 +415,7 @@ public class CartService {
 
         Pizza pizza = pizzaRepository.findByProduct(item.getProduct())
                 .orElseThrow(() -> new NotFoundException(
-                        "Pizza entity not found for product",
+                        ErrorMessage.PIZZA_ENTITY_NOT_FOUND_PRODUCT,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("productId", item.getProduct().getId())
                 ));
@@ -428,7 +428,7 @@ public class CartService {
                                           List<Long> addIngredientIds) {
         if (item.getProduct().getType() != ProductType.PIZZA) {
             throw new BadRequestException(
-                    "Only pizza items support customizations",
+                    ErrorMessage.ONLY_PIZZA_CUSTOMIZATION,
                     ErrorCode.INVALID_OPERATION,
                     ErrorContext.of("orderItemId", item.getId())
             );
@@ -436,7 +436,7 @@ public class CartService {
 
         Pizza pizza = pizzaRepository.findByProduct(item.getProduct())
                 .orElseThrow(() -> new NotFoundException(
-                        "Pizza entity not found for product",
+                        ErrorMessage.PIZZA_ENTITY_NOT_FOUND_PRODUCT,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("productId", item.getProduct().getId())
                 ));

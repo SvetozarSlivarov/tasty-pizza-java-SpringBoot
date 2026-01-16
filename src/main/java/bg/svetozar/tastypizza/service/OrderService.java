@@ -37,19 +37,19 @@ public class OrderService {
     private User getCurrentUserOrThrow() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
-            throw new UnauthorizedException("Authentication required");
+            throw new UnauthorizedException(ErrorMessage.REQUIRED_AUTHENTICATION);
         }
 
         String username = auth.getName();
 
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UnauthorizedException("Invalid authentication principal"));
+                .orElseThrow(() -> new UnauthorizedException(ErrorMessage.INVALID_AUTHENTICATION_PRINCIPAL));
     }
 
     private Order requireOrder(Long orderId) {
         if (orderId == null || orderId <= 0) {
             throw new BadRequestException(
-                    "Invalid order id",
+                    ErrorMessage.INVALID_ORDER_ID,
                     ErrorCode.BAD_REQUEST,
                     ErrorContext.of("orderId", orderId)
             );
@@ -57,7 +57,7 @@ public class OrderService {
 
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException(
-                        "Order not found",
+                        ErrorMessage.ORDER_NOT_FOUND,
                         ErrorCode.NOT_FOUND,
                         ErrorContext.of("orderId", orderId)
                 ));
@@ -68,7 +68,7 @@ public class OrderService {
 
         if (order.getUser() == null || !order.getUser().getId().equals(requester.getId())) {
             throw new ForbiddenException(
-                    "Not allowed to access this order",
+                    ErrorMessage.ORDER_NOT_ALLOWED_ACCESS,
                     ErrorCode.FORBIDDEN,
                     ErrorContext.of("orderId", order.getId())
             );
@@ -109,7 +109,7 @@ public class OrderService {
 
         if (source.getStatus() == OrderStatus.CART) {
             throw new BadRequestException(
-                    "Cannot reorder a cart",
+                    ErrorMessage.CANNOT_REORDER_CART,
                     ErrorCode.BAD_REQUEST,
                     ErrorContext.of("orderId", sourceOrderId)
             );

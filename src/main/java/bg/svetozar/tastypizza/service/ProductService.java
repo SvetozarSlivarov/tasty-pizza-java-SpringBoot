@@ -28,7 +28,7 @@ public class ProductService {
     public Product getByIdOrThrow(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Product not found",
+                        ErrorMessage.PRODUCT_NOT_FOUND,
                         ErrorCode.PRODUCT_NOT_FOUND,
                         ErrorContext.of("productId", id)
                 ));
@@ -38,7 +38,7 @@ public class ProductService {
     public BigDecimal getBasePriceOrThrow(Long id) {
         return productRepository.findBasePriceById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Base price not found for product",
+                        ErrorMessage.BASE_PRICE_NOT_FOUND_FOR_PRODUCT,
                         ErrorCode.PRODUCT_BASE_PRICE_NOT_FOUND,
                         ErrorContext.of("productId", id)
                 ));
@@ -48,7 +48,7 @@ public class ProductService {
     public ProductType getTypeOrThrow(Long id) {
         return productRepository.findTypeById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        "Product type not found for product",
+                        ErrorMessage.PRODUCT_TYPE_NOT_FOUND,
                         ErrorCode.PRODUCT_TYPE_NOT_FOUND,
                         ErrorContext.of("productId", id)
                 ));
@@ -65,7 +65,7 @@ public class ProductService {
 
         if (imageBase64 == null || imageBase64.isBlank()) {
             throw new BadRequestException(
-                    "Image is required",
+                    ErrorMessage.REQUIRED_IMAGE,
                     ErrorCode.IMAGE_REQUIRED,
                     ErrorContext.of("field", "imageBase64")
             );
@@ -122,7 +122,7 @@ public class ProductService {
 
         if (product.isDeleted()) {
             throw new ConflictException(
-                    "Product is already deleted",
+                    ErrorMessage.PRODUCT_ALREADY_DELETED,
                     ErrorCode.PRODUCT_ALREADY_DELETED,
                     ErrorContext.of("productId", id)
             );
@@ -137,7 +137,7 @@ public class ProductService {
 
         if (!product.isDeleted()) {
             throw new ConflictException(
-                    "Product is not deleted",
+                    ErrorMessage.PRODUCT_NOT_DELETED,
                     ErrorCode.PRODUCT_NOT_DELETED,
                     ErrorContext.of("productId", id)
             );
@@ -151,14 +151,14 @@ public class ProductService {
     private void validateBasePrice(BigDecimal basePrice) {
         if (basePrice == null) {
             throw new BadRequestException(
-                    "Base price is required",
+                    ErrorMessage.REQUIRED_PRICE,
                     ErrorCode.INVALID_PRICE,
                     ErrorContext.of("field", "basePrice")
             );
         }
         if (basePrice.signum() < 0) {
             throw new BadRequestException(
-                    "Base price must be >= 0",
+                    ErrorMessage.INVALID_PRICE_MUST_BE_POSITIVE,
                     ErrorCode.INVALID_PRICE,
                     ErrorContext.of("field", "basePrice", "value", basePrice)
             );

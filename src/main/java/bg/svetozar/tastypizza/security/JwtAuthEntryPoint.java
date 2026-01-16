@@ -2,6 +2,7 @@ package bg.svetozar.tastypizza.security;
 
 import bg.svetozar.tastypizza.exception.ApiError;
 import bg.svetozar.tastypizza.exception.ErrorCode;
+import bg.svetozar.tastypizza.exception.ErrorMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -48,7 +49,7 @@ public class JwtAuthEntryPoint implements AuthenticationEntryPoint {
     }
 
     private String resolveMessage(AuthenticationException ex) {
-        return "Authentication required";
+        return ErrorMessage.REQUIRED_AUTHENTICATION;
     }
 
     private String resolveTraceId(HttpServletRequest request) {
