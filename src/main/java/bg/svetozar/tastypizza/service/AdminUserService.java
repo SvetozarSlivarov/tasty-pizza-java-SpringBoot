@@ -16,7 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Map;
+
+import static bg.svetozar.tastypizza.exception.ErrorMessage.ADMIN_CANNOT_CHANGE_OWN_ROLE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.ADMIN_CANNOT_DELETE_SELF;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_SHOW_FILTER;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_USER_ID;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_ROLE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.USER_IS_DELETED_CANNOT_MODIFIED;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.USER_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +44,7 @@ public class AdminUserService {
         Long currentUserId = getCurrentUserId();
         if (currentUserId != null && currentUserId.equals(id)) {
             throw new ForbiddenException(
-                    ErrorMessage.ADMIN_CANNOT_CHANGE_OWN_ROLE,
+                    ADMIN_CANNOT_CHANGE_OWN_ROLE,
                     ErrorCode.ADMIN_CANNOT_CHANGE_OWN_ROLE,
                     ErrorContext.of("userId", id)
             );
@@ -45,14 +52,14 @@ public class AdminUserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.USER_NOT_FOUND,
+                        USER_NOT_FOUND,
                         ErrorCode.USER_NOT_FOUND,
                         ErrorContext.of("userId", id)
                 ));
 
         if (user.isDeleted()) {
             throw new ConflictException(
-                    ErrorMessage.USER_IS_DELETED_CANNOT_MODIFIED,
+                    USER_IS_DELETED_CANNOT_MODIFIED,
                     ErrorCode.USER_DELETED,
                     ErrorContext.of("userId", id)
             );
@@ -73,7 +80,7 @@ public class AdminUserService {
         Long currentUserId = getCurrentUserId();
         if (currentUserId != null && currentUserId.equals(id)) {
             throw new ForbiddenException(
-                    ErrorMessage.ADMIN_CANNOT_DELETE_SELF,
+                    ADMIN_CANNOT_DELETE_SELF,
                     ErrorCode.ADMIN_CANNOT_DELETE_SELF,
                     ErrorContext.of("userId", id)
             );
@@ -81,7 +88,7 @@ public class AdminUserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.USER_NOT_FOUND,
+                        USER_NOT_FOUND,
                         ErrorCode.USER_NOT_FOUND,
                         ErrorContext.of("userId", id)
                 ));
@@ -103,7 +110,7 @@ public class AdminUserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.USER_NOT_FOUND,
+                        USER_NOT_FOUND,
                         ErrorCode.USER_NOT_FOUND,
                         ErrorContext.of("userId", id)
                 ));
@@ -122,7 +129,7 @@ public class AdminUserService {
     private void validateId(Long id) {
         if (id == null || id <= 0) {
             throw new BadRequestException(
-                    ErrorMessage.INVALID_USER_ID,
+                    INVALID_USER_ID,
                     ErrorCode.INVALID_USER_ID,
                     ErrorContext.of("userId", id)
             );
@@ -132,7 +139,7 @@ public class AdminUserService {
     private void validateRole(UserRole role) {
         if (role == null) {
             throw new BadRequestException(
-                    ErrorMessage.ROLE_REQUIRED,
+                    REQUIRED_ROLE,
                     ErrorCode.ROLE_REQUIRED
             );
         }
@@ -163,6 +170,7 @@ public class AdminUserService {
         }
         return null;
     }
+
     private String normalizeShow(String show) {
         String showFilter = (!StringUtils.hasText(show))
                 ? "active"
@@ -170,7 +178,7 @@ public class AdminUserService {
 
         if (!showFilter.equals("active") && !showFilter.equals("deleted") && !showFilter.equals("all")) {
             throw new BadRequestException(
-                    ErrorMessage.INVALID_SHOW_FILTER,
+                    INVALID_SHOW_FILTER,
                     ErrorCode.INVALID_SHOW_FILTER,
                     ErrorContext.of("show", show)
             );

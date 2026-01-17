@@ -1,7 +1,6 @@
 package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.*;
-import bg.svetozar.tastypizza.exception.ErrorCode;
 import bg.svetozar.tastypizza.model.dto.pizza.PizzaDto;
 import bg.svetozar.tastypizza.model.dto.pizza.PizzaRequest;
 import bg.svetozar.tastypizza.model.dto.pizza.PizzaVariantRequest;
@@ -20,19 +19,31 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static bg.svetozar.tastypizza.exception.ErrorMessage.DUPLICATE_ALLOWED_INGREDIENT;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.DUPLICATE_PIZZA_INGREDIENT;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.DUPLICATE_PIZZA_VARIANT;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_CANNOT_BOTH_ALLOWED_AND_BASE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_NOT_FOUND;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_ENUM_VALUE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_ENUM_VALUE_WITH_VALUE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_PRICE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_PRICE_FORMAT;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_PRICE_MUST_BE_POSITIVE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_ALREADY_DELETED;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_NOT_DELETED;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_NOT_FOUND;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PRODUCT_NOT_FOUND_FOR_PIZZA;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class PizzaService {
-
-
 
     private final PizzaRepository pizzaRepository;
     private final ProductService productService;
     private final IngredientRepository ingredientRepository;
     private final PizzaIngredientRepository pizzaIngredientRepository;
     private final PizzaAllowedIngredientRepository pizzaAllowedIngredientRepository;
-
 
     @Transactional(readOnly = true)
     public List<PizzaDto> getAll(boolean fullView) {
@@ -64,7 +75,7 @@ public class PizzaService {
     public PizzaDto getById(Long id) {
         Pizza pizza = pizzaRepository.findByIdFull(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.PIZZA_NOT_FOUND,
+                        PIZZA_NOT_FOUND,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("pizzaId", id)
                 ));
@@ -72,7 +83,6 @@ public class PizzaService {
         hydrateIngredients(List.of(pizza));
         return PizzaMapper.toPizzaDto(pizza);
     }
-
 
     public PizzaDto create(PizzaRequest request) {
         BigDecimal basePrice = parseMoney(request.basePrice(), "basePrice");
@@ -106,11 +116,10 @@ public class PizzaService {
         return PizzaMapper.toPizzaDto(saved);
     }
 
-
     public PizzaDto update(Long id, PizzaRequest request) {
         Pizza existing = pizzaRepository.findByIdFull(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.PIZZA_NOT_FOUND,
+                        PIZZA_NOT_FOUND,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("pizzaId", id)
                 ));
@@ -151,18 +160,17 @@ public class PizzaService {
         return PizzaMapper.toPizzaDto(existing);
     }
 
-
     public void softDelete(Long id) {
         Pizza pizza = pizzaRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.PIZZA_NOT_FOUND,
+                        PIZZA_NOT_FOUND,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("pizzaId", id)
                 ));
 
         if (pizza.getProduct() == null) {
             throw new NotFoundException(
-                    ErrorMessage.PRODUCT_NOT_FOUND_FOR_PIZZA,
+                    PRODUCT_NOT_FOUND_FOR_PIZZA,
                     ErrorCode.PRODUCT_NOT_FOUND,
                     ErrorContext.of("pizzaId", id)
             );
@@ -170,7 +178,7 @@ public class PizzaService {
 
         if (pizza.getProduct().isDeleted()) {
             throw new ConflictException(
-                    ErrorMessage.PIZZA_ALREADY_DELETED,
+                    PIZZA_ALREADY_DELETED,
                     ErrorCode.PIZZA_ALREADY_DELETED,
                     ErrorContext.of("pizzaId", id)
             );
@@ -182,14 +190,14 @@ public class PizzaService {
     public void restoreDeletedPizza(Long id) {
         Pizza pizza = pizzaRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.PIZZA_NOT_FOUND,
+                        PIZZA_NOT_FOUND,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("pizzaId", id)
                 ));
 
         if (pizza.getProduct() == null || !Boolean.TRUE.equals(pizza.getProduct().isDeleted())) {
             throw new ConflictException(
-                    ErrorMessage.PIZZA_NOT_DELETED,
+                    PIZZA_NOT_DELETED,
                     ErrorCode.PIZZA_NOT_DELETED,
                     ErrorContext.of("pizzaId", id)
             );
@@ -197,7 +205,6 @@ public class PizzaService {
 
         productService.restoreDeletedProduct(pizza.getProduct().getId());
     }
-
 
     private void hydrateIngredients(List<Pizza> pizzas) {
         pizzas.forEach(pizza -> {
@@ -221,7 +228,7 @@ public class PizzaService {
     private BigDecimal parseMoney(String value, String field) {
         if (!StringUtils.hasText(value)) {
             throw new BadRequestException(
-                    ErrorMessage.INVALID_PRICE,
+                    INVALID_PRICE,
                     ErrorCode.INVALID_PRICE,
                     ErrorContext.of("field", field, "value", value)
             );
@@ -230,7 +237,7 @@ public class PizzaService {
             BigDecimal bd = new BigDecimal(value);
             if (bd.signum() < 0) {
                 throw new BadRequestException(
-                        ErrorMessage.INVALID_PRICE_MUST_BE_POSITIVE,
+                        INVALID_PRICE_MUST_BE_POSITIVE,
                         ErrorCode.INVALID_PRICE,
                         ErrorContext.of("field", field, "value", value)
                 );
@@ -238,7 +245,7 @@ public class PizzaService {
             return bd;
         } catch (NumberFormatException ex) {
             throw new BadRequestException(
-                    ErrorMessage.INVALID_PRICE_FORMAT,
+                    INVALID_PRICE_FORMAT,
                     ErrorCode.INVALID_PRICE,
                     ErrorContext.of("field", field, "value", value)
             );
@@ -248,7 +255,7 @@ public class PizzaService {
     private <E extends Enum<E>> E parseEnum(Class<E> type, String value, String field) {
         if (!StringUtils.hasText(value)) {
             throw new BadRequestException(
-                    ErrorMessage.INVALID_ENUM_VALUE,
+                    INVALID_ENUM_VALUE,
                     ErrorCode.INVALID_ENUM,
                     ErrorContext.of("field", field, "value", value)
             );
@@ -257,7 +264,7 @@ public class PizzaService {
             return Enum.valueOf(type, value);
         } catch (IllegalArgumentException ex) {
             throw new BadRequestException(
-                    ErrorMessage.INVALID_ENUM_VALUE_WITH_VALUE + value,
+                    INVALID_ENUM_VALUE_WITH_VALUE + value,
                     ErrorCode.INVALID_ENUM,
                     ErrorContext.of("field", field, "value", value)
             );
@@ -276,7 +283,7 @@ public class PizzaService {
             String key = variant.size() + "|" + variant.dough();
             if (!seen.add(key)) {
                 throw new ConflictException(
-                        ErrorMessage.DUPLICATE_PIZZA_VARIANT,
+                        DUPLICATE_PIZZA_VARIANT,
                         ErrorCode.DUPLICATE_VARIANT,
                         ErrorContext.of("size", variant.size(), "dough", variant.dough())
                 );
@@ -295,7 +302,7 @@ public class PizzaService {
                 if (id == null) continue;
                 if (!baseIds.add(id)) {
                     throw new ConflictException(
-                            ErrorMessage.DUPLICATE_PIZZA_INGREDIENT,
+                            DUPLICATE_PIZZA_INGREDIENT,
                             ErrorCode.DUPLICATE_INGREDIENT,
                             ErrorContext.of("ingredientId", id)
                     );
@@ -313,7 +320,7 @@ public class PizzaService {
 
                 if (!allowedIds.add(id)) {
                     throw new ConflictException(
-                            ErrorMessage.DUPLICATE_ALLOWED_INGREDIENT,
+                            DUPLICATE_ALLOWED_INGREDIENT,
                             ErrorCode.DUPLICATE_ALLOWED_INGREDIENT,
                             ErrorContext.of("ingredientId", id)
                     );
@@ -328,7 +335,7 @@ public class PizzaService {
         if (!intersection.isEmpty()) {
             Long first = intersection.iterator().next();
             throw new ConflictException(
-                    ErrorMessage.INGREDIENT_CANNOT_BOTH_ALLOWED_AND_BASE,
+                    INGREDIENT_CANNOT_BOTH_ALLOWED_AND_BASE,
                     ErrorCode.INGREDIENT_IN_BASE_AND_ALLOWED,
                     ErrorContext.of("ingredientId", first, "count", intersection.size())
             );
@@ -356,7 +363,7 @@ public class PizzaService {
                     Ingredient ingredient = ingredientRepository
                             .findByIdAndDeletedFalse(req.ingredientId())
                             .orElseThrow(() -> new NotFoundException(
-                                    ErrorMessage.INGREDIENT_NOT_FOUND,
+                                    INGREDIENT_NOT_FOUND,
                                     ErrorCode.INGREDIENT_NOT_FOUND,
                                     ErrorContext.of("ingredientId", req.ingredientId())
                             ));
@@ -381,7 +388,7 @@ public class PizzaService {
                     Ingredient ingredient = ingredientRepository
                             .findByIdAndDeletedFalse(req.ingredientId())
                             .orElseThrow(() -> new NotFoundException(
-                                    ErrorMessage.INGREDIENT_NOT_FOUND,
+                                    INGREDIENT_NOT_FOUND,
                                     ErrorCode.INGREDIENT_NOT_FOUND,
                                     ErrorContext.of("ingredientId", req.ingredientId())
                             ));

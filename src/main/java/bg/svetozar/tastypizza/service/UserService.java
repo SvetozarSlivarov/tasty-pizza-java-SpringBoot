@@ -12,14 +12,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_CURRENT_PASSWORD;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.NOT_AUTHENTICATED;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.USERNAME_ALREADY_TAKEN;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.USER_NOT_FOUND;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
 
     private User getCurrentUserOrThrow() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -27,7 +30,7 @@ public class UserService {
         if (auth == null || !auth.isAuthenticated()
                 || "anonymousUser".equals(auth.getPrincipal())) {
             throw new UnauthorizedException(
-                    ErrorMessage.NOT_AUTHENTICATED,
+                    NOT_AUTHENTICATED,
                     ErrorCode.UNAUTHORIZED
             );
         }
@@ -36,18 +39,16 @@ public class UserService {
 
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UnauthorizedException(
-                        ErrorMessage.USER_NOT_FOUND,
+                        USER_NOT_FOUND,
                         ErrorCode.USER_NOT_FOUND,
                         ErrorContext.of("username", username)
                 ));
     }
 
-
     @Transactional(readOnly = true)
     public UserDto getProfile() {
         return UserMapper.toDto(getCurrentUserOrThrow());
     }
-
 
     @Transactional
     public UserDto updateProfile(UpdateUserRequest request) {
@@ -63,7 +64,7 @@ public class UserService {
 
             if (userRepository.existsByUsername(request.username())) {
                 throw new ConflictException(
-                        ErrorMessage.USERNAME_ALREADY_TAKEN,
+                        USERNAME_ALREADY_TAKEN,
                         ErrorCode.USERNAME_ALREADY_TAKEN,
                         ErrorContext.of("username", request.username())
                 );
@@ -96,7 +97,7 @@ public class UserService {
 
         if (userRepository.existsByUsername(newUsername)) {
             throw new ConflictException(
-                    ErrorMessage.USERNAME_ALREADY_TAKEN,
+                    USERNAME_ALREADY_TAKEN,
                     ErrorCode.USERNAME_ALREADY_TAKEN,
                     ErrorContext.of("username", newUsername)
             );
@@ -114,7 +115,7 @@ public class UserService {
 
         if (!passwordEncoder.matches(req.currentPassword(), user.getPassword())) {
             throw new BadRequestException(
-                    ErrorMessage.INVALID_CURRENT_PASSWORD,
+                    INVALID_CURRENT_PASSWORD,
                     ErrorCode.INVALID_CREDENTIALS
             );
         }

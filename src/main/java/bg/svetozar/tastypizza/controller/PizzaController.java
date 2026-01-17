@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_ID_POSITIVE;
 
 import java.util.List;
 
@@ -40,7 +41,7 @@ public class PizzaController {
 
     @GetMapping("/{id}")
     public PizzaDto getById(
-            @PathVariable @Positive(message = "id must be positive") Long id
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
     ) {
         return pizzaService.getById(id);
     }
@@ -57,7 +58,7 @@ public class PizzaController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public PizzaDto update(
-            @PathVariable @Positive(message = "id must be positive") Long id,
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id,
             @Valid @RequestBody PizzaRequest request
     ) {
         return pizzaService.update(id, request);
@@ -67,7 +68,7 @@ public class PizzaController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void delete(
-            @PathVariable @Positive(message = "id must be positive") Long id
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
     ) {
         pizzaService.softDelete(id);
     }
@@ -76,7 +77,7 @@ public class PizzaController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void restore(
-            @PathVariable @Positive(message = "id must be positive") Long id
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
     ) {
         pizzaService.restoreDeletedPizza(id);
     }

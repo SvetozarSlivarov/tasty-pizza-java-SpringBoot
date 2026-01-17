@@ -3,20 +3,25 @@ package bg.svetozar.tastypizza.model.dto.drink;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_NAME;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_DRINK_NAME_BETWEEN_2_80_CHARS;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_DRINK_DESCRIPTION_MAX_500_CHARS;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_DRINK_BASE_PRICE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_DRINK_BASE_PRICE_2_DECIMALS;
 
 public record DrinkRequest(
 
-        @NotBlank(message = "Name is required")
-        @Size(min = 2, max = 80, message = "Name must be between 2 and 80 characters")
+        @NotBlank(message = REQUIRED_NAME)
+        @Size(min = 2, max = 80, message = INVALID_DRINK_NAME_BETWEEN_2_80_CHARS)
         String name,
 
-        @Size(max = 500, message = "Description must be at most 500 characters")
+        @Size(max = 500, message = INVALID_DRINK_DESCRIPTION_MAX_500_CHARS)
         String description,
 
-        @NotBlank(message = "Base price is required")
+        @NotBlank(message = REQUIRED_DRINK_BASE_PRICE)
         @Pattern(
                 regexp = "^(?:0|[1-9]\\d*)(?:\\.\\d{1,2})?$",
-                message = "Base price must be a valid number with up to 2 decimals"
+                message = INVALID_DRINK_BASE_PRICE_2_DECIMALS
         )
         String basePrice,
 

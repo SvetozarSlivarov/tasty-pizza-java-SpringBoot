@@ -4,9 +4,10 @@ import bg.svetozar.tastypizza.model.enums.UserRole;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_ROLE;
 
 public record UpdateUserRoleRequest(
-        @NotNull(message = "Role is required")
+        @NotNull(message = REQUIRED_ROLE)
         UserRole role
 ) {
     @JsonCreator

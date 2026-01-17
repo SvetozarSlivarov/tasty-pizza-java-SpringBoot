@@ -1,7 +1,6 @@
 package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.ErrorCode;
-import bg.svetozar.tastypizza.exception.ErrorMessage;
 import bg.svetozar.tastypizza.exception.NotFoundException;
 import bg.svetozar.tastypizza.model.dto.drink.DrinkDto;
 import bg.svetozar.tastypizza.model.dto.drink.DrinkRequest;
@@ -16,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+
+import static bg.svetozar.tastypizza.exception.ErrorMessage.DRINK_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +41,7 @@ public class DrinkService {
     public DrinkDto getById(Long id) {
         Drink drink = drinkRepository.findByIdLight(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.DRINK_NOT_FOUND + id,
+                        DRINK_NOT_FOUND + id,
                         ErrorCode.DRINK_NOT_FOUND
                 ));
 
@@ -68,7 +69,7 @@ public class DrinkService {
     public DrinkDto update(Long id, DrinkRequest request) {
         Drink drink = drinkRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.DRINK_NOT_FOUND + id,
+                        DRINK_NOT_FOUND + id,
                         ErrorCode.DRINK_NOT_FOUND
                 ));
 
@@ -90,7 +91,7 @@ public class DrinkService {
     public void softDelete(Long id) {
         Drink drink = drinkRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.DRINK_NOT_FOUND + id,
+                        DRINK_NOT_FOUND + id,
                         ErrorCode.DRINK_NOT_FOUND
                 ));
 
@@ -100,7 +101,7 @@ public class DrinkService {
     public void restoreDeletedDrink(Long id) {
         Drink drink = drinkRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.DRINK_NOT_FOUND + id,
+                        DRINK_NOT_FOUND + id,
                         ErrorCode.DRINK_NOT_FOUND
                 ));
 

@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_ITEM_ID_POSITIVE;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -97,7 +98,7 @@ public class CartController {
     public ResponseEntity<CartDto> updateCartItem(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
-            @PathVariable @Min(value = 1, message = "itemId must be >= 1") Long itemId,
+            @PathVariable @Min(value = 1, message = INVALID_ITEM_ID_POSITIVE) Long itemId,
             @Valid @RequestBody UpdateCartItemRequest request
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
@@ -108,7 +109,7 @@ public class CartController {
     public ResponseEntity<CartDto> removeItem(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
-            @PathVariable @Min(value = 1, message = "itemId must be >= 1") Long itemId
+            @PathVariable @Min(value = 1, message = INVALID_ITEM_ID_POSITIVE) Long itemId
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
         return ResponseEntity.ok(cartService.removeItem(guestToken, itemId));

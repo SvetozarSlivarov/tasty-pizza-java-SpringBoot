@@ -25,6 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+import static bg.svetozar.tastypizza.exception.ErrorMessage.CANNOT_REORDER_CART;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_AUTHENTICATION_PRINCIPAL;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_ORDER_ID;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.ORDER_NOT_ALLOWED_ACCESS;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.ORDER_NOT_FOUND;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_AUTHENTICATION;
+
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -37,19 +44,19 @@ public class OrderService {
     private User getCurrentUserOrThrow() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
-            throw new UnauthorizedException(ErrorMessage.REQUIRED_AUTHENTICATION);
+            throw new UnauthorizedException(REQUIRED_AUTHENTICATION);
         }
 
         String username = auth.getName();
 
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UnauthorizedException(ErrorMessage.INVALID_AUTHENTICATION_PRINCIPAL));
+                .orElseThrow(() -> new UnauthorizedException(INVALID_AUTHENTICATION_PRINCIPAL));
     }
 
     private Order requireOrder(Long orderId) {
         if (orderId == null || orderId <= 0) {
             throw new BadRequestException(
-                    ErrorMessage.INVALID_ORDER_ID,
+                    INVALID_ORDER_ID,
                     ErrorCode.BAD_REQUEST,
                     ErrorContext.of("orderId", orderId)
             );
@@ -57,7 +64,7 @@ public class OrderService {
 
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.ORDER_NOT_FOUND,
+                        ORDER_NOT_FOUND,
                         ErrorCode.NOT_FOUND,
                         ErrorContext.of("orderId", orderId)
                 ));
@@ -68,7 +75,7 @@ public class OrderService {
 
         if (order.getUser() == null || !order.getUser().getId().equals(requester.getId())) {
             throw new ForbiddenException(
-                    ErrorMessage.ORDER_NOT_ALLOWED_ACCESS,
+                    ORDER_NOT_ALLOWED_ACCESS,
                     ErrorCode.FORBIDDEN,
                     ErrorContext.of("orderId", order.getId())
             );
@@ -86,7 +93,6 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderStatusChangeDTO> getStatusHistory(Long orderId) {
-
         User requester = getCurrentUserOrThrow();
 
         Order order = requireOrder(orderId);
@@ -109,7 +115,7 @@ public class OrderService {
 
         if (source.getStatus() == OrderStatus.CART) {
             throw new BadRequestException(
-                    ErrorMessage.CANNOT_REORDER_CART,
+                    CANNOT_REORDER_CART,
                     ErrorCode.BAD_REQUEST,
                     ErrorContext.of("orderId", sourceOrderId)
             );

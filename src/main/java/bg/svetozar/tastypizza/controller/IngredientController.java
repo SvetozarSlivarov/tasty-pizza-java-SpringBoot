@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_ID_POSITIVE;
 
 import java.util.List;
 
@@ -53,7 +54,7 @@ public class IngredientController {
 
     @GetMapping("/{id}")
     public ResponseEntity<IngredientWithTypeDto> getOne(
-            @PathVariable @Positive(message = "id must be positive") Long id
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
     ) {
         IngredientWithTypeDto response = ingredientService.findOne(id);
         return ResponseEntity.ok(response);
@@ -71,7 +72,7 @@ public class IngredientController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<IngredientWithTypeDto> update(
-            @PathVariable @Positive(message = "id must be positive") Long id,
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id,
             @Valid @RequestBody IngredientRequest dto
     ) {
         IngredientWithTypeDto response = ingredientService.update(id, dto);
@@ -81,7 +82,7 @@ public class IngredientController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Void> softDelete(
-            @PathVariable @Positive(message = "id must be positive") Long id
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
     ) {
         ingredientService.softDelete(id);
         return ResponseEntity.noContent().build();
@@ -90,7 +91,7 @@ public class IngredientController {
     @PostMapping("/{id}/restore")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Void> restore(
-            @PathVariable @Positive(message = "id must be positive") Long id
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
     ) {
         ingredientService.restore(id);
         return ResponseEntity.noContent().build();

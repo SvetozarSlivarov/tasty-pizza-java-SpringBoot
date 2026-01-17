@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_ID_POSITIVE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_PIZZA_ID_POSITIVE;
 
 import java.util.List;
 
@@ -23,7 +25,7 @@ public class PizzaIngredientController {
 
     @GetMapping
     public List<PizzaIngredientDto> getByPizza(
-            @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId
+            @PathVariable @Positive(message = INVALID_PIZZA_ID_POSITIVE) Long pizzaId
     ) {
         return pizzaIngredientService.getByPizzaId(pizzaId);
     }
@@ -32,7 +34,7 @@ public class PizzaIngredientController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public PizzaIngredientDto add(
-            @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId,
+            @PathVariable @Positive(message = INVALID_PIZZA_ID_POSITIVE) Long pizzaId,
             @Valid @RequestBody PizzaIngredientRequest request
     ) {
         return pizzaIngredientService.addIngredientToPizza(pizzaId, request);
@@ -42,8 +44,8 @@ public class PizzaIngredientController {
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public PizzaIngredientDto update(
-            @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId,
-            @PathVariable @Positive(message = "id must be positive") Long id,
+            @PathVariable @Positive(message = INVALID_PIZZA_ID_POSITIVE) Long pizzaId,
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id,
             @Valid @RequestBody PizzaIngredientRequest request
     ) {
         return pizzaIngredientService.update(pizzaId, id, request);
@@ -53,8 +55,8 @@ public class PizzaIngredientController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public void delete(
-            @PathVariable @Positive(message = "pizzaId must be positive") Long pizzaId,
-            @PathVariable @Positive(message = "id must be positive") Long id
+            @PathVariable @Positive(message = INVALID_PIZZA_ID_POSITIVE) Long pizzaId,
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
     ) {
         pizzaIngredientService.delete(pizzaId, id);
     }

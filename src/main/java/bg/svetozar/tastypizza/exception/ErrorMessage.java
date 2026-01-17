@@ -1,6 +1,6 @@
 package bg.svetozar.tastypizza.exception;
 
-import java.security.SecureRandom;
+import java.awt.*;
 
 public final class ErrorMessage {
 
@@ -25,7 +25,7 @@ public final class ErrorMessage {
     public static final String ADMIN_CANNOT_CHANGE_OWN_ROLE = "You cannot change your own role.";
     public static final String ADMIN_CANNOT_DELETE_SELF = "You cannot delete your own account.";
     public static final String USER_IS_DELETED_CANNOT_MODIFIED = "User is deleted and cannot be modified.";
-    public static final String ROLE_REQUIRED =  "Role is required.";
+    public static final String REQUIRED_ROLE =  "Role is required.";
     public static final String INVALID_SHOW_FILTER = "Invalid show filter. Allowed: active, deleted, all.";
     public static final String USERNAME_ALREADY_TAKEN =  "Username is already taken";
     public static final String USER_DELETED =   "User is deleted";
@@ -94,4 +94,62 @@ public final class ErrorMessage {
     public static final String NOT_AUTHENTICATED = "Not authenticated";
     public static final String INVALID_CURRENT_PASSWORD = "Invalid current password";
     public static final String USER_NOT_FOUND_OR_DELETED = "User not found or deleted. Username: ";
+
+
+    public static final String REQUIRED_USERNAME = "Username is required";
+    public static final String INVALID_USERNAME_BETWEEN_3_50_CHARS = "Username must be between 3 and 50 characters";
+    public static final String INVALID_PASSWORD_BETWEEN_6_255_CHARS = "Password must be between 6 and 255 characters";
+    public static final String REQUIRED_PASSWORD = "Password is required";
+    public static final String REQUIRED_FULL_NAME = "Full name is required";
+    public static final String INVALID_FULL_NAME_BETWEEN_2_100_CHARS = "Full  name must be between 2 and 100 characters";
+    public static final String REQUIRED_NAME = "Name is required";
+    public static final String INVALID_DRINK_NAME_BETWEEN_2_80_CHARS = "Name must be between 2 and 80 characters";
+    public static final String INVALID_DRINK_DESCRIPTION_MAX_500_CHARS = "Description must be at most 500 characters";
+    public static final String REQUIRED_DRINK_BASE_PRICE = "Base price is required";
+    public static final String INVALID_DRINK_BASE_PRICE_2_DECIMALS = "Base price must be a valid number with up to 2 decimals";
+    public static final String INVALID_INGREDIENT_NAME_BETWEEN_2_100_CHARS = "Ingredient name is required";
+    public static final String REQUIRED_TYPE_ID = "Type id is required";
+    public static final String INVALID_TYPE_ID_POSITIVE = "Type id must be positive";
+    public static final String INVALID_TYPE_NAME_BETWEEN_2_50_CHARS = "Type name must be between 2 and 50 characters";
+
+    public static final String REQUIRED_PRODUCT_ID = "Product id is required";
+    public static final String INVALID_PRODUCT_ID_POSITIVE = "Product id must be positive";
+    public static final String REQUIRED_QUANTITY = "Quantity is required";
+    public static final String INVALID_QUANTITY_POSITIVE = "Quantity must be positive";
+    public static final String INVALID_NOTE_MAX_300_CHARS = "Note max 300 characters";
+    public static final String REQUIRED_VARIANT_ID = "Variant id is required";
+    public static final String INVALID_VARIANT_ID_POSITIVE = "Variant id must be positive";
+    public static final String INVALID_REMOVE_INGREDIENT_IDS_POSITIVE = "Remove ingredient id must be positive";
+    public static final String INVALID_ADD_INGREDIENT_IDS_POSITIVE =  "Adding ingredient id must be positive";
+    public static final String INVALID_PHONE_NUMBER_MAX_30_CHARS = "Phone number max 30 characters";
+    public static final String INVALID_ADDRESS_MAX_300_CHARS = "Address max 300 characters";
+    public static final String INVALID_PIZZA_DESCRIPTION_MAX_1000_CHARS = "Description must be at most 1000 characters";
+    public static final String INVALID_PIZZA_NAME_BETWEEN_5_100_CHARS = "Pizza name must be between 5 and 100 characters";
+    public static final String REQUIRED_SPICY_LEVEL = "Spicy level is required";
+    public static final String INVALID_SPICY_LEVEL_MAX_20 = "Spicy level must be at most 20 characters";
+    public static final String REQUIRED_VARIANTS =  "Variants are required";
+    public static final String REQUIRED_PIZZA_INGREDIENTS = "Pizza ingredients are required";
+    public static final String REQUIRED_ALLOWED_INGREDIENTS = "Allowed ingredients are required";
+    public static final String REQUIRED_PIZZA_BASE_PRICE = "Base price is required";
+    public static final String INVALID_PIZZA_BASE_PRICE_2_DECIMALS = "Base price must be a valid number with up to 2 decimals";
+
+    public static final String REQUIRED_PIZZA_SIZE = "Pizza size is required";
+    public static final String INVALID_PIZZA_SIZE_MAX_20_CHARS = "Pizza size must be at most 20 characters";
+    public static final String REQUIRED_PIZZA_DOUGH =  "Pizza dough is required";
+    public static final String INVALID_PIZZA_DOUGH_MAX_20_CHARS = "Pizza dough must be at most 20 characters";
+    public static final String INVALID_EXTRA_PRICE_2_DECIMALS = "Extra price must be a valid number with up to 2 decimals";
+
+    public static final String REQUIRED_INGREDIENT_ID = "Ingredient id is required";
+    public static final String INVALID_INGREDIENT_ID_POSITIVE = "Ingredient id must be positive";
+
+    public static final String REQUIRED_CURRENT_PASSWORD = "Current password is required";
+    public static final String REQUIRED_NEW_PASSWORD = "New password is required";
+    public static final String INVALID_NEW_PASSWORD_BETWEEN_6_255_CHARS = "New password must be between 6 and 255 characters";
+
+    public static final String INVALID_ITEM_ID_POSITIVE = "Item id must be positive";
+    public static final String INVALID_ID_POSITIVE = "Id must be positive";
+    public static final String INVALID_PIZZA_ID_POSITIVE = "Pizza id must be positive";
+
+
+
 }

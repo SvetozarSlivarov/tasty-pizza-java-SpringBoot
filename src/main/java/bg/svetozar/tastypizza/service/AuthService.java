@@ -20,6 +20,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_REFRESH_TOKEN;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_USERNAME_PASSWORD;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_REFRESH_TOKEN;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.USER_DELETED;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.USERNAME_ALREADY_TAKEN;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -36,7 +42,7 @@ public class AuthService {
 
         if (userRepository.existsByUsername(username)) {
             throw new ConflictException(
-                    ErrorMessage.USERNAME_ALREADY_TAKEN,
+                    USERNAME_ALREADY_TAKEN,
                     ErrorCode.USERNAME_ALREADY_TAKEN,
                     ErrorContext.of("username", username)
             );
@@ -76,7 +82,7 @@ public class AuthService {
 
             if (user.isDeleted()) {
                 throw new ForbiddenException(
-                        ErrorMessage.USER_DELETED,
+                        USER_DELETED,
                         ErrorCode.USER_DELETED,
                         ErrorContext.of("userId", user.getId())
                 );
@@ -89,7 +95,7 @@ public class AuthService {
 
         } catch (AuthenticationException ex) {
             throw new UnauthorizedException(
-                    ErrorMessage.INVALID_USERNAME_PASSWORD
+                    INVALID_USERNAME_PASSWORD
             );
         }
     }
@@ -97,7 +103,7 @@ public class AuthService {
     public Tokens refreshToken(String refreshToken) {
         if (!StringUtils.hasText(refreshToken)) {
             throw new BadRequestException(
-                    ErrorMessage.REQUIRED_REFRESH_TOKEN,
+                    REQUIRED_REFRESH_TOKEN,
                     ErrorCode.BAD_REQUEST
             );
         }
@@ -107,7 +113,7 @@ public class AuthService {
             username = jwtService.extractUsername(refreshToken);
         } catch (JwtException ex) {
             throw new UnauthorizedException(
-                    ErrorMessage.INVALID_REFRESH_TOKEN
+                    INVALID_REFRESH_TOKEN
             );
         }
 
@@ -116,14 +122,14 @@ public class AuthService {
             userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
         } catch (UsernameNotFoundException ex) {
             throw new UnauthorizedException(
-                    ErrorMessage.INVALID_REFRESH_TOKEN
+                    INVALID_REFRESH_TOKEN
             );
         }
 
         User user = userDetails.getUser();
         if (user != null && user.isDeleted()) {
             throw new ForbiddenException(
-                    ErrorMessage.USER_DELETED,
+                    USER_DELETED,
                     ErrorCode.USER_DELETED,
                     ErrorContext.of("userId", user.getId())
             );
@@ -131,7 +137,7 @@ public class AuthService {
 
         if (!jwtService.isRefreshTokenValid(refreshToken, userDetails)) {
             throw new UnauthorizedException(
-                    ErrorMessage.INVALID_REFRESH_TOKEN
+                    INVALID_REFRESH_TOKEN
             );
         }
 

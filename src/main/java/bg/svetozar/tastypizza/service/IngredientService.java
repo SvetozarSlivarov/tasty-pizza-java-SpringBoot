@@ -1,7 +1,6 @@
 package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.ErrorCode;
-import bg.svetozar.tastypizza.exception.ErrorMessage;
 import bg.svetozar.tastypizza.exception.NotFoundException;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientDto;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientRequest;
@@ -19,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_NOT_FOUND;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_NOT_FOUND_OR_DELETE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_TYPE_NOT_FOUND;
 
 @Service
 @Transactional
@@ -38,7 +41,6 @@ public class IngredientService {
         List<Ingredient> ingredients = resolveListByShowWithType(show);
         return ingredientMapper.toWithTypeResponseList(ingredients);
     }
-
 
     private List<Ingredient> resolveListByShow(String show) {
         boolean admin = isAdmin();
@@ -84,21 +86,19 @@ public class IngredientService {
         throw new IllegalArgumentException("Invalid show filter: " + show);
     }
 
-
-
     public IngredientWithTypeDto findOne(Long id) {
         Ingredient ingredient;
 
         if (isAdmin()) {
             ingredient = ingredientRepository.findByIdWithType(id)
                     .orElseThrow(() -> new NotFoundException(
-                            ErrorMessage.INGREDIENT_NOT_FOUND + id,
+                            INGREDIENT_NOT_FOUND + id,
                             ErrorCode.INGREDIENT_NOT_FOUND
                     ));
         } else {
             ingredient = ingredientRepository.findByIdAndDeletedFalseWithType(id)
                     .orElseThrow(() -> new NotFoundException(
-                            ErrorMessage.INGREDIENT_NOT_FOUND_OR_DELETE + id,
+                            INGREDIENT_NOT_FOUND_OR_DELETE + id,
                             ErrorCode.INGREDIENT_NOT_FOUND
                     ));
         }
@@ -106,11 +106,10 @@ public class IngredientService {
         return ingredientMapper.toWithTypeResponse(ingredient);
     }
 
-
     public IngredientWithTypeDto create(IngredientRequest dto) {
         IngredientType type = ingredientTypeRepository.findById(dto.typeId())
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.INGREDIENT_NOT_FOUND + dto.typeId(),
+                        INGREDIENT_NOT_FOUND + dto.typeId(),
                         ErrorCode.INGREDIENT_TYPE_NOT_FOUND
                 ));
 
@@ -128,13 +127,13 @@ public class IngredientService {
     public IngredientWithTypeDto update(Long id, IngredientRequest dto) {
         Ingredient ingredient = ingredientRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.INGREDIENT_NOT_FOUND + id,
+                        INGREDIENT_NOT_FOUND + id,
                         ErrorCode.INGREDIENT_NOT_FOUND
                 ));
 
         IngredientType type = ingredientTypeRepository.findById(dto.typeId())
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.INGREDIENT_TYPE_NOT_FOUND + dto.typeId(),
+                        INGREDIENT_TYPE_NOT_FOUND + dto.typeId(),
                         ErrorCode.INGREDIENT_TYPE_NOT_FOUND
                 ));
 
@@ -147,7 +146,7 @@ public class IngredientService {
     public void softDelete(Long id) {
         Ingredient ingredient = ingredientRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.INGREDIENT_NOT_FOUND + id,
+                        INGREDIENT_NOT_FOUND + id,
                         ErrorCode.INGREDIENT_NOT_FOUND
                 ));
 
@@ -158,14 +157,13 @@ public class IngredientService {
     public void restore(Long id) {
         Ingredient ingredient = ingredientRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.INGREDIENT_NOT_FOUND + id,
+                        INGREDIENT_NOT_FOUND + id,
                         ErrorCode.INGREDIENT_NOT_FOUND
                 ));
 
         ingredient.setDeleted(false);
         ingredient.setDeletedAt(null);
     }
-
 
     private boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

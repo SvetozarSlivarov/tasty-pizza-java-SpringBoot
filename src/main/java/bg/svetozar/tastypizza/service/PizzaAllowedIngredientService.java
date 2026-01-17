@@ -18,6 +18,13 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static bg.svetozar.tastypizza.exception.ErrorMessage.ALLOWED_INGREDIENT_NOT_FOUND_WITH_ID;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_ALREADY_ALLOWED;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_NOT_FOUND_WITH_ID;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_EXTRA_PRICE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_NOT_FOUND_WITH_ID;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_EXTRA_PRICE;
+
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -31,7 +38,7 @@ public class PizzaAllowedIngredientService {
     public List<PizzaAllowedIngredientDto> getByPizzaId(Long pizzaId) {
         pizzaRepository.findById(pizzaId)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.PIZZA_NOT_FOUND_WITH_ID + pizzaId,
+                        PIZZA_NOT_FOUND_WITH_ID + pizzaId,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("pizzaId", pizzaId)
                 ));
@@ -43,21 +50,21 @@ public class PizzaAllowedIngredientService {
     public PizzaAllowedIngredientDto addAllowedIngredient(Long pizzaId, PizzaAllowedIngredientRequest request) {
         Pizza pizza = pizzaRepository.findById(pizzaId)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.PIZZA_NOT_FOUND_WITH_ID + pizzaId,
+                        PIZZA_NOT_FOUND_WITH_ID + pizzaId,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("pizzaId", pizzaId)
                 ));
 
         Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(request.ingredientId())
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.INGREDIENT_NOT_FOUND_WITH_ID + request.ingredientId(),
+                        INGREDIENT_NOT_FOUND_WITH_ID + request.ingredientId(),
                         ErrorCode.INGREDIENT_NOT_FOUND,
                         ErrorContext.of("ingredientId", request.ingredientId())
                 ));
 
         if (allowedIngredientRepository.existsByPizza_IdAndIngredient_Id(pizzaId, request.ingredientId())) {
             throw new ConflictException(
-                    ErrorMessage.INGREDIENT_ALREADY_ALLOWED,
+                    INGREDIENT_ALREADY_ALLOWED,
                     ErrorCode.PIZZA_ALLOWED_INGREDIENT_ALREADY_EXISTS,
                     ErrorContext.of("pizzaId", pizzaId, "ingredientId", request.ingredientId())
             );
@@ -78,14 +85,14 @@ public class PizzaAllowedIngredientService {
     public PizzaAllowedIngredientDto update(Long pizzaId, Long id, PizzaAllowedIngredientRequest request) {
         PizzaAllowedIngredient entity = allowedIngredientRepository.findByIdAndPizza_Id(id, pizzaId)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.ALLOWED_INGREDIENT_NOT_FOUND_WITH_ID + id,
+                        ALLOWED_INGREDIENT_NOT_FOUND_WITH_ID + id,
                         ErrorCode.PIZZA_ALLOWED_INGREDIENT_NOT_FOUND,
                         ErrorContext.of("pizzaId", pizzaId, "id", id)
                 ));
 
         Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(request.ingredientId())
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.INGREDIENT_NOT_FOUND_WITH_ID + request.ingredientId(),
+                        INGREDIENT_NOT_FOUND_WITH_ID + request.ingredientId(),
                         ErrorCode.INGREDIENT_NOT_FOUND,
                         ErrorContext.of("ingredientId", request.ingredientId())
                 ));
@@ -93,7 +100,7 @@ public class PizzaAllowedIngredientService {
         if (allowedIngredientRepository.existsByPizza_IdAndIngredient_Id(pizzaId, request.ingredientId())
                 && (entity.getIngredient() == null || !entity.getIngredient().getId().equals(request.ingredientId()))) {
             throw new ConflictException(
-                    ErrorMessage.INGREDIENT_ALREADY_ALLOWED,
+                    INGREDIENT_ALREADY_ALLOWED,
                     ErrorCode.PIZZA_ALLOWED_INGREDIENT_ALREADY_EXISTS,
                     ErrorContext.of("pizzaId", pizzaId, "ingredientId", request.ingredientId())
             );
@@ -109,7 +116,7 @@ public class PizzaAllowedIngredientService {
     public void delete(Long pizzaId, Long id) {
         PizzaAllowedIngredient entity = allowedIngredientRepository.findByIdAndPizza_Id(id, pizzaId)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.ALLOWED_INGREDIENT_NOT_FOUND_WITH_ID + id,
+                        ALLOWED_INGREDIENT_NOT_FOUND_WITH_ID + id,
                         ErrorCode.PIZZA_ALLOWED_INGREDIENT_NOT_FOUND,
                         ErrorContext.of("pizzaId", pizzaId, "id", id)
                 ));
@@ -120,7 +127,7 @@ public class PizzaAllowedIngredientService {
     private BigDecimal parseExtraPrice(String value) {
         if (!StringUtils.hasText(value)) {
             throw new BadRequestException(
-                    ErrorMessage.REQUIRED_EXTRA_PRICE,
+                    REQUIRED_EXTRA_PRICE,
                     ErrorCode.INVALID_EXTRA_PRICE,
                     ErrorContext.of("field", "extraPrice")
             );
@@ -129,7 +136,7 @@ public class PizzaAllowedIngredientService {
             return new BigDecimal(value);
         } catch (NumberFormatException e) {
             throw new BadRequestException(
-                    ErrorMessage.INVALID_EXTRA_PRICE + value,
+                    INVALID_EXTRA_PRICE + value,
                     ErrorCode.INVALID_EXTRA_PRICE,
                     ErrorContext.of("field", "extraPrice", "value", value)
             );

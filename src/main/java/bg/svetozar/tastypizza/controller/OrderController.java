@@ -10,9 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_ID_POSITIVE;
 
 import java.time.Duration;
 import java.util.List;
@@ -49,7 +49,7 @@ public class OrderController {
 
     @PostMapping("/{id}/reorder")
     public ResponseEntity<ReorderResultDto> reorder(
-            @PathVariable @Min(value = 1, message = "id must be >= 1") Long id,
+            @PathVariable @Min(value = 1, message = INVALID_ID_POSITIVE) Long id,
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response
     ) {
@@ -64,7 +64,7 @@ public class OrderController {
 
     @GetMapping("/{id}/statusHistory")
     public ResponseEntity<List<OrderStatusChangeDTO>> getStatusHistory(
-            @PathVariable @Min(value = 1, message = "id must be >= 1") Long id
+            @PathVariable @Min(value = 1, message = INVALID_ID_POSITIVE) Long id
     ) {
         return ResponseEntity.ok(orderService.getStatusHistory(id));
     }

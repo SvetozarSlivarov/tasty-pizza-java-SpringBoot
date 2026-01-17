@@ -16,6 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_NOT_FOUND_WITH_ID;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_INGREDIENT_ALREADY_EXISTS;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_INGREDIENT_NOT_FOUND_WITH_ID;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_NOT_FOUND_WITH_ID;
+
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -34,21 +39,21 @@ public class PizzaIngredientService {
     public PizzaIngredientDto addIngredientToPizza(Long pizzaId, PizzaIngredientRequest request) {
         Pizza pizza = pizzaRepository.findById(pizzaId)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.PIZZA_NOT_FOUND_WITH_ID + pizzaId,
+                        PIZZA_NOT_FOUND_WITH_ID + pizzaId,
                         ErrorCode.PIZZA_NOT_FOUND,
                         ErrorContext.of("pizzaId", pizzaId)
                 ));
 
         Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(request.ingredientId())
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.INGREDIENT_NOT_FOUND_WITH_ID + request.ingredientId(),
+                        INGREDIENT_NOT_FOUND_WITH_ID + request.ingredientId(),
                         ErrorCode.INGREDIENT_NOT_FOUND,
                         ErrorContext.of("ingredientId", request.ingredientId())
                 ));
 
         if (pizzaIngredientRepository.existsByPizza_IdAndIngredient_Id(pizzaId, request.ingredientId())) {
             throw new ConflictException(
-                    ErrorMessage.PIZZA_INGREDIENT_ALREADY_EXISTS,
+                    PIZZA_INGREDIENT_ALREADY_EXISTS,
                     ErrorCode.PIZZA_INGREDIENT_ALREADY_EXISTS,
                     ErrorContext.of("pizzaId", pizzaId, "ingredientId", request.ingredientId())
             );
@@ -67,14 +72,14 @@ public class PizzaIngredientService {
     public PizzaIngredientDto update(Long pizzaId, Long id, PizzaIngredientRequest request) {
         PizzaIngredient entity = pizzaIngredientRepository.findByIdAndPizza_Id(id, pizzaId)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.PIZZA_INGREDIENT_NOT_FOUND_WITH_ID + id,
+                        PIZZA_INGREDIENT_NOT_FOUND_WITH_ID + id,
                         ErrorCode.PIZZA_INGREDIENT_NOT_FOUND,
                         ErrorContext.of("pizzaId", pizzaId, "id", id)
                 ));
 
         Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(request.ingredientId())
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.INGREDIENT_NOT_FOUND_WITH_ID + request.ingredientId(),
+                        INGREDIENT_NOT_FOUND_WITH_ID + request.ingredientId(),
                         ErrorCode.INGREDIENT_NOT_FOUND,
                         ErrorContext.of("ingredientId", request.ingredientId())
                 ));
@@ -83,7 +88,7 @@ public class PizzaIngredientService {
                 && (entity.getIngredient() == null || !entity.getIngredient().getId().equals(request.ingredientId()))) {
 
             throw new ConflictException(
-                    ErrorMessage.PIZZA_INGREDIENT_ALREADY_EXISTS,
+                    PIZZA_INGREDIENT_ALREADY_EXISTS,
                     ErrorCode.PIZZA_INGREDIENT_ALREADY_EXISTS,
                     ErrorContext.of("pizzaId", pizzaId, "ingredientId", request.ingredientId())
             );
@@ -99,7 +104,7 @@ public class PizzaIngredientService {
     public void delete(Long pizzaId, Long id) {
         PizzaIngredient entity = pizzaIngredientRepository.findByIdAndPizza_Id(id, pizzaId)
                 .orElseThrow(() -> new NotFoundException(
-                        ErrorMessage.PIZZA_INGREDIENT_NOT_FOUND_WITH_ID + id,
+                        PIZZA_INGREDIENT_NOT_FOUND_WITH_ID + id,
                         ErrorCode.PIZZA_INGREDIENT_NOT_FOUND,
                         ErrorContext.of("pizzaId", pizzaId, "id", id)
                 ));
