@@ -89,7 +89,10 @@ public class AdminOrderService {
         List<AdminOrderStatusChangeDto> history = statusChangeRepository
                 .findByOrderIdOrderByChangedAtAsc(order.getId())
                 .stream()
-                .map(sc -> new AdminOrderStatusChangeDto(sc.getStatus(), sc.getChangedAt()))
+                .map(orderStatusChange ->
+                        new AdminOrderStatusChangeDto(
+                                orderStatusChange.getStatus(),
+                                orderStatusChange.getChangedAt()))
                 .toList();
 
         String username = (order.getUser() != null)
@@ -174,11 +177,11 @@ public class AdminOrderService {
                         ? List.<OrderItemCustomization>of()
                         : orderItem.getCustomizations())
                         .stream()
-                        .sorted(Comparator.comparing(c ->
-                                c.getId() == null ? Long.MAX_VALUE : c.getId()))
-                        .map(c -> new AdminOrderItemCustomizationDto(
-                                c.getAction() != null ? c.getAction().name() : null,
-                                c.getIngredient() != null ? c.getIngredient().getName() : null
+                        .sorted(Comparator.comparing(orderItemCustomization ->
+                                orderItemCustomization.getId() == null ? Long.MAX_VALUE : orderItemCustomization.getId()))
+                        .map(orderItemCustomization -> new AdminOrderItemCustomizationDto(
+                                orderItemCustomization.getAction() != null ? orderItemCustomization.getAction().name() : null,
+                                orderItemCustomization.getIngredient() != null ? orderItemCustomization.getIngredient().getName() : null
                         ))
                         .toList();
 

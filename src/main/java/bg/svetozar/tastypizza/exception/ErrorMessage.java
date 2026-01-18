@@ -150,6 +150,9 @@ public final class ErrorMessage {
     public static final String INVALID_ID_POSITIVE = "Id must be positive";
     public static final String INVALID_PIZZA_ID_POSITIVE = "Pizza id must be positive";
 
+    public static final String INVALID_PRODUCT_ID = "Invalid product id";
+    public static final String INVALID_ORDER_ITEM_ID = "Invalid order item id";
+
 
 
 }

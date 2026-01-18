@@ -17,6 +17,8 @@ import java.util.Map;
 @Component
 public class JwtAuthEntryPoint implements AuthenticationEntryPoint {
 
+    public static final String APPLICATION_JSON_UTF8 =  "application/json;charset=UTF-8";
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -27,7 +29,7 @@ public class JwtAuthEntryPoint implements AuthenticationEntryPoint {
     ) throws IOException {
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json;charset=UTF-8");
+        response.setContentType(APPLICATION_JSON_UTF8);
 
         String message = resolveMessage(authException);
 

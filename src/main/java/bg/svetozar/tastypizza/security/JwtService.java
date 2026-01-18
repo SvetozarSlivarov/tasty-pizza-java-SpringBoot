@@ -23,6 +23,9 @@ public class JwtService {
     @Value("${app.jwt.refresh-expiration-ms}")
     private long refreshExpirationMs;
 
+    private static final String ACCESS =  "access";
+    private static final String REFRESH = "refresh";
+
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         return Keys.hmacShaKeyFor(keyBytes);
@@ -68,7 +71,7 @@ public class JwtService {
 
     public String generateAccessToken(CustomUserDetails userDetails) {
         return buildToken(
-                buildCommonClaims(userDetails, "access"),
+                buildCommonClaims(userDetails, ACCESS),
                 userDetails.getUsername(),
                 accessExpirationMs
         );
@@ -76,18 +79,18 @@ public class JwtService {
 
     public String generateRefreshToken(CustomUserDetails userDetails) {
         return buildToken(
-                buildCommonClaims(userDetails, "refresh"),
+                buildCommonClaims(userDetails, REFRESH),
                 userDetails.getUsername(),
                 refreshExpirationMs
         );
     }
 
     public boolean isAccessTokenValid(String token, CustomUserDetails userDetails) {
-        return isTokenValidInternal(token, userDetails, "access");
+        return isTokenValidInternal(token, userDetails, ACCESS);
     }
 
     public boolean isRefreshTokenValid(String token, CustomUserDetails userDetails) {
-        return isTokenValidInternal(token, userDetails, "refresh");
+        return isTokenValidInternal(token, userDetails, REFRESH);
     }
 
     private boolean isTokenValidInternal(String token, CustomUserDetails userDetails, String expectedType) {

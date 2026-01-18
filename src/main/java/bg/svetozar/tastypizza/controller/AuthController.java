@@ -1,6 +1,6 @@
 package bg.svetozar.tastypizza.controller;
 
-import bg.svetozar.tastypizza.exception.ErrorCode;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_REFRESH_TOKEN;
 import bg.svetozar.tastypizza.exception.UnauthorizedException;
 import bg.svetozar.tastypizza.model.dto.auth.AuthResponse;
 import bg.svetozar.tastypizza.model.dto.auth.LoginRequest;
@@ -61,7 +61,7 @@ public class AuthController {
     ) {
         if (!StringUtils.hasText(refreshToken)) {
             throw new UnauthorizedException(
-                    "Invalid refresh token",
+                    INVALID_REFRESH_TOKEN,
                     Map.of()
             );
         }
