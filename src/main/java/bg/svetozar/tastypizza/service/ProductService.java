@@ -109,12 +109,12 @@ public class ProductService {
         product.setBasePrice(basePrice);
         product.setType(type);
 
-        if (!StringUtils.hasText(newImageBase64)) {
+        if (StringUtils.hasText(newImageBase64)) {
             String oldUrl = product.getImageUrl();
             String newUrl = cloudinaryService.uploadBase64Image(newImageBase64);
             product.setImageUrl(newUrl);
 
-            if (!StringUtils.hasText(oldUrl)) {
+            if (StringUtils.hasText(oldUrl)) {
                 cloudinaryService.deleteByUrl(oldUrl);
             }
         }

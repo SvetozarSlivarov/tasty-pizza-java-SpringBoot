@@ -26,7 +26,7 @@ public class CloudinaryService {
     private String folder;
 
     public String uploadBase64Image(String base64Image) {
-        if (StringUtils.hasText(base64Image)) {
+        if (!StringUtils.hasText(base64Image)) {
             return null;
         }
 
@@ -56,7 +56,7 @@ public class CloudinaryService {
     }
 
     public void deleteByUrl(String url) {
-        if (StringUtils.hasText(url)) {
+        if (!StringUtils.hasText(url)) {
             return;
         }
 

@@ -675,7 +675,7 @@ public class CartService {
     }
 
     private void requireCartNotEmpty(Order cart) {
-        if (!ValidationUtils.isNullOrEmpty(cart.getItems())) {
+        if (ValidationUtils.isNullOrEmpty(cart.getItems())) {
             throw new ConflictException(
                     CANNOT_CHECKOUT_EMPTY_CART,
                     ErrorCode.CART_EMPTY
