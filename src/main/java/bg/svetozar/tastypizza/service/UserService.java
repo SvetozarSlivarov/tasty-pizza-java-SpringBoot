@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_CURRENT_PASSWORD;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.NOT_AUTHENTICATED;
@@ -54,24 +55,27 @@ public class UserService {
     public UserDto updateProfile(UpdateUserRequest request) {
         User user = getCurrentUserOrThrow();
 
-        if (request.fullname() != null && !request.fullname().isBlank()) {
-            user.setFullname(request.fullname().trim());
+        String fullname = request.fullname();
+        if (StringUtils.hasText(fullname)) {
+            user.setFullname(fullname.trim());
         }
 
-        if (request.username() != null
-                && !request.username().isBlank()
-                && !request.username().equals(user.getUsername())) {
+        String username = request.username();
+        if (StringUtils.hasText(username)) {
+            String normalizedUsername = username.trim();
 
-            if (userRepository.existsByUsername(request.username())) {
-                throw new ConflictException(
-                        USERNAME_ALREADY_TAKEN,
-                        ErrorCode.USERNAME_ALREADY_TAKEN,
-                        ErrorContext.of("username", request.username())
-                );
+            if (!normalizedUsername.equals(user.getUsername())) {
+                if (userRepository.existsByUsername(normalizedUsername)) {
+                    throw new ConflictException(
+                            USERNAME_ALREADY_TAKEN,
+                            ErrorCode.USERNAME_ALREADY_TAKEN,
+                            ErrorContext.of("username", normalizedUsername)
+                    );
+                }
+
+                user.setUsername(normalizedUsername);
+                user.setTokenVersion(user.getTokenVersion() + 1);
             }
-
-            user.setUsername(request.username().trim());
-            user.setTokenVersion(user.getTokenVersion() + 1);
         }
 
         userRepository.save(user);

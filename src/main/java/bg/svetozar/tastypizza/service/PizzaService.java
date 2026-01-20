@@ -13,6 +13,7 @@ import bg.svetozar.tastypizza.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -272,7 +273,7 @@ public class PizzaService {
     }
 
     private void validateVariantUniqueness(List<PizzaVariantRequest> variants) {
-        if (variants == null || variants.isEmpty()) return;
+        if (CollectionUtils.isEmpty(variants)) return;
 
         Set<String> seen = new HashSet<>();
         for (PizzaVariantRequest variant : variants) {

@@ -16,6 +16,7 @@ import bg.svetozar.tastypizza.model.mapper.OrderMapper;
 import bg.svetozar.tastypizza.repository.OrderRepository;
 import bg.svetozar.tastypizza.repository.OrderStatusChangeRepository;
 import bg.svetozar.tastypizza.repository.UserRepository;
+import bg.svetozar.tastypizza.util.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static bg.svetozar.tastypizza.exception.ErrorMessage.CANNOT_REORDER_CART;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_AUTHENTICATION_PRINCIPAL;
@@ -54,7 +56,7 @@ public class OrderService {
     }
 
     private Order requireOrder(Long orderId) {
-        if (orderId == null || orderId <= 0) {
+        if (ValidationUtils.isInvalidRequiredId(orderId)) {
             throw new BadRequestException(
                     INVALID_ORDER_ID,
                     ErrorCode.BAD_REQUEST,
@@ -71,9 +73,14 @@ public class OrderService {
     }
 
     private void ensureCanAccessOrder(User requester, Order order) {
-        if (requester.getRole() == UserRole.ADMIN) return;
+        if (requester.getRole() == UserRole.ADMIN) {
+            return;
+        }
 
-        if (order.getUser() == null || !order.getUser().getId().equals(requester.getId())) {
+        Long requesterId = requester.getId();
+        Long orderUserId = order.getUser() != null ? order.getUser().getId() : null;
+
+        if (!Objects.equals(orderUserId, requesterId)) {
             throw new ForbiddenException(
                     ORDER_NOT_ALLOWED_ACCESS,
                     ErrorCode.FORBIDDEN,

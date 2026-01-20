@@ -68,16 +68,15 @@ public class AuthService {
     }
 
     public Tokens login(LoginRequest request) {
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                );
+        var authToken = new UsernamePasswordAuthenticationToken(
+                request.getUsername(),
+                request.getPassword()
+        );
 
         try {
             var authentication = authenticationManager.authenticate(authToken);
 
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            var userDetails = (CustomUserDetails) authentication.getPrincipal();
             User user = userDetails.getUser();
 
             if (user.isDeleted()) {
@@ -109,6 +108,7 @@ public class AuthService {
         }
 
         String username;
+
         try {
             username = jwtService.extractUsername(refreshToken);
         } catch (JwtException ex) {
@@ -118,6 +118,7 @@ public class AuthService {
         }
 
         CustomUserDetails userDetails;
+
         try {
             userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
         } catch (UsernameNotFoundException ex) {

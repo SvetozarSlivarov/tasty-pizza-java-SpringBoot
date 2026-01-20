@@ -16,6 +16,7 @@ import bg.svetozar.tastypizza.model.enums.ProductType;
 import bg.svetozar.tastypizza.repository.OrderItemRepository;
 import bg.svetozar.tastypizza.repository.OrderRepository;
 import bg.svetozar.tastypizza.repository.OrderStatusChangeRepository;
+import bg.svetozar.tastypizza.util.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,7 +51,7 @@ public class AdminOrderService {
         OrderStatus status = parseStatusOrThrow(statusStr);
         String normalizedQuery = normalize(query);
 
-        if (userId != null && userId <= 0) {
+        if (ValidationUtils.isInvalidId(userId)) {
             throw new BadRequestException(
                     INVALID_USER_ID,
                     ErrorCode.BAD_REQUEST,
@@ -143,29 +144,7 @@ public class AdminOrderService {
     public AdminOrderStatusUpdateDto adminCancel(Long orderId) {
         Order order = getOrderOrThrow(orderId);
 
-        if (order.getStatus() == OrderStatus.DELIVERED) {
-            throw new ConflictException(
-                    ORDER_ALREADY_DELIVERED,
-                    ErrorCode.ORDER_ALREADY_DELIVERED,
-                    ErrorContext.of("orderId", orderId)
-            );
-        }
-
-        if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw new ConflictException(
-                    ORDER_ALREADY_CANCELLED,
-                    ErrorCode.ORDER_ALREADY_CANCELLED,
-                    ErrorContext.of("orderId", orderId)
-            );
-        }
-
-        if (order.getStatus() == OrderStatus.CART) {
-            throw new BadRequestException(
-                    ORDER_IS_CART,
-                    ErrorCode.ORDER_IS_CART,
-                    ErrorContext.of("orderId", orderId)
-            );
-        }
+        assertAdminCancelable(order.getStatus(), orderId);
 
         changeStatus(order, OrderStatus.CANCELLED);
         return new AdminOrderStatusUpdateDto(order.getId(), order.getStatus(), order.getUpdatedAt());
@@ -246,7 +225,7 @@ public class AdminOrderService {
     }
 
     private void requireOrderId(Long orderId) {
-        if (orderId == null || orderId <= 0) {
+        if (ValidationUtils.isInvalidRequiredId(orderId)) {
             throw new BadRequestException(
                     INVALID_ORDER_ID,
                     ErrorCode.INVALID_ORDER_ID,
@@ -294,5 +273,26 @@ public class AdminOrderService {
         change.setStatus(newStatus);
         change.setChangedAt(now);
         statusChangeRepository.save(change);
+    }
+
+    private void assertAdminCancelable(OrderStatus status, Long orderId) {
+        switch (status) {
+            case DELIVERED -> throw new ConflictException(
+                    ORDER_ALREADY_DELIVERED,
+                    ErrorCode.ORDER_ALREADY_DELIVERED,
+                    ErrorContext.of("orderId", orderId)
+            );
+            case CANCELLED -> throw new ConflictException(
+                    ORDER_ALREADY_CANCELLED,
+                    ErrorCode.ORDER_ALREADY_CANCELLED,
+                    ErrorContext.of("orderId", orderId)
+            );
+            case CART -> throw new BadRequestException(
+                    ORDER_IS_CART,
+                    ErrorCode.ORDER_IS_CART,
+                    ErrorContext.of("orderId", orderId)
+            );
+            default -> { }
+        }
     }
 }

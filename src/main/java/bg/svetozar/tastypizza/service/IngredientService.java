@@ -28,90 +28,32 @@ import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_TYPE_NOT_
 @RequiredArgsConstructor
 public class IngredientService {
 
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+
     private final IngredientRepository ingredientRepository;
     private final IngredientTypeRepository ingredientTypeRepository;
     private final IngredientMapper ingredientMapper;
 
     public List<IngredientDto> findAllBasic(String show) {
-        List<Ingredient> ingredients = resolveListByShow(show);
-        return ingredientMapper.toResponseList(ingredients);
+        return ingredientMapper.toResponseList(resolveIngredients(show, false));
     }
 
     public List<IngredientWithTypeDto> findAllWithType(String show) {
-        List<Ingredient> ingredients = resolveListByShowWithType(show);
-        return ingredientMapper.toWithTypeResponseList(ingredients);
-    }
-
-    private List<Ingredient> resolveListByShow(String show) {
-        boolean admin = isAdmin();
-
-        if (!admin) {
-            return ingredientRepository.findAllByDeletedFalse();
-        }
-
-        if (show == null || show.isBlank() || show.equalsIgnoreCase("active")) {
-            return ingredientRepository.findAllByDeletedFalse();
-        }
-
-        if (show.equalsIgnoreCase("all")) {
-            return ingredientRepository.findAll();
-        }
-
-        if (show.equalsIgnoreCase("deleted")) {
-            return ingredientRepository.findAllByDeletedTrue();
-        }
-
-        throw new IllegalArgumentException("Invalid show filter: " + show);
-    }
-
-    private List<Ingredient> resolveListByShowWithType(String show) {
-        boolean admin = isAdmin();
-
-        if (!admin) {
-            return ingredientRepository.findAllActiveWithType();
-        }
-
-        if (show == null || show.isBlank() || show.equalsIgnoreCase("active")) {
-            return ingredientRepository.findAllActiveWithType();
-        }
-
-        if (show.equalsIgnoreCase("all")) {
-            return ingredientRepository.findAllWithType();
-        }
-
-        if (show.equalsIgnoreCase("deleted")) {
-            return ingredientRepository.findAllDeletedWithType();
-        }
-
-        throw new IllegalArgumentException("Invalid show filter: " + show);
+        return ingredientMapper.toWithTypeResponseList(resolveIngredients(show, true));
     }
 
     public IngredientWithTypeDto findOne(Long id) {
-        Ingredient ingredient;
-
-        if (isAdmin()) {
-            ingredient = ingredientRepository.findByIdWithType(id)
-                    .orElseThrow(() -> new NotFoundException(
-                            INGREDIENT_NOT_FOUND + id,
-                            ErrorCode.INGREDIENT_NOT_FOUND
-                    ));
-        } else {
-            ingredient = ingredientRepository.findByIdAndDeletedFalseWithType(id)
-                    .orElseThrow(() -> new NotFoundException(
-                            INGREDIENT_NOT_FOUND_OR_DELETE + id,
-                            ErrorCode.INGREDIENT_NOT_FOUND
-                    ));
-        }
+        Ingredient ingredient = isAdmin()
+                ? ingredientRepository.findByIdWithType(id).orElseThrow(() ->
+                new NotFoundException(INGREDIENT_NOT_FOUND + id, ErrorCode.INGREDIENT_NOT_FOUND))
+                : ingredientRepository.findByIdAndDeletedFalseWithType(id).orElseThrow(() ->
+                new NotFoundException(INGREDIENT_NOT_FOUND_OR_DELETE + id, ErrorCode.INGREDIENT_NOT_FOUND));
 
         return ingredientMapper.toWithTypeResponse(ingredient);
     }
 
     public IngredientWithTypeDto create(IngredientRequest dto) {
-        IngredientType type = ingredientTypeRepository.findById(dto.typeId())
-                .orElseThrow(() -> new NotFoundException(
-                        INGREDIENT_NOT_FOUND + dto.typeId(),
-                        ErrorCode.INGREDIENT_TYPE_NOT_FOUND
-                ));
+        IngredientType type = requireIngredientType(dto.typeId());
 
         Ingredient ingredient = Ingredient.builder()
                 .name(dto.name())
@@ -125,17 +67,8 @@ public class IngredientService {
     }
 
     public IngredientWithTypeDto update(Long id, IngredientRequest dto) {
-        Ingredient ingredient = ingredientRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException(
-                        INGREDIENT_NOT_FOUND + id,
-                        ErrorCode.INGREDIENT_NOT_FOUND
-                ));
-
-        IngredientType type = ingredientTypeRepository.findById(dto.typeId())
-                .orElseThrow(() -> new NotFoundException(
-                        INGREDIENT_TYPE_NOT_FOUND + dto.typeId(),
-                        ErrorCode.INGREDIENT_TYPE_NOT_FOUND
-                ));
+        Ingredient ingredient = requireIngredient(id);
+        IngredientType type = requireIngredientType(dto.typeId());
 
         ingredient.setName(dto.name());
         ingredient.setType(type);
@@ -144,34 +77,71 @@ public class IngredientService {
     }
 
     public void softDelete(Long id) {
-        Ingredient ingredient = ingredientRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException(
-                        INGREDIENT_NOT_FOUND + id,
-                        ErrorCode.INGREDIENT_NOT_FOUND
-                ));
-
+        Ingredient ingredient = requireIngredient(id);
         ingredient.setDeleted(true);
         ingredient.setDeletedAt(LocalDateTime.now());
     }
 
     public void restore(Long id) {
-        Ingredient ingredient = ingredientRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException(
-                        INGREDIENT_NOT_FOUND + id,
-                        ErrorCode.INGREDIENT_NOT_FOUND
-                ));
-
+        Ingredient ingredient = requireIngredient(id);
         ingredient.setDeleted(false);
         ingredient.setDeletedAt(null);
     }
 
+    private List<Ingredient> resolveIngredients(String show, boolean withType) {
+        boolean admin = isAdmin();
+
+        if (!admin) {
+            return withType
+                    ? ingredientRepository.findAllActiveWithType()
+                    : ingredientRepository.findAllByDeletedFalse();
+        }
+
+        String normalized = normalizeShow(show);
+
+        return switch (normalized) {
+            case "active" -> withType
+                    ? ingredientRepository.findAllActiveWithType()
+                    : ingredientRepository.findAllByDeletedFalse();
+            case "all" -> withType
+                    ? ingredientRepository.findAllWithType()
+                    : ingredientRepository.findAll();
+            case "deleted" -> withType
+                    ? ingredientRepository.findAllDeletedWithType()
+                    : ingredientRepository.findAllByDeletedTrue();
+            default -> throw new IllegalArgumentException("Invalid show filter: " + show);
+        };
+    }
+
+    private String normalizeShow(String show) {
+        if (show == null || show.isBlank()) {
+            return "active";
+        }
+        return show.trim().toLowerCase();
+    }
+
+    private Ingredient requireIngredient(Long id) {
+        return ingredientRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(
+                        INGREDIENT_NOT_FOUND + id,
+                        ErrorCode.INGREDIENT_NOT_FOUND
+                ));
+    }
+
+    private IngredientType requireIngredientType(Long typeId) {
+        return ingredientTypeRepository.findById(typeId)
+                .orElseThrow(() -> new NotFoundException(
+                        INGREDIENT_TYPE_NOT_FOUND + typeId,
+                        ErrorCode.INGREDIENT_TYPE_NOT_FOUND
+                ));
+    }
+
     private boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
         if (auth == null || auth.getAuthorities() == null) {
             return false;
         }
         return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                .anyMatch(a -> ROLE_ADMIN.equals(a.getAuthority()));
     }
 }

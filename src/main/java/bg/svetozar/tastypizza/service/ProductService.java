@@ -7,6 +7,7 @@ import bg.svetozar.tastypizza.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -67,7 +68,7 @@ public class ProductService {
     ) {
         validateBasePrice(basePrice);
 
-        if (imageBase64 == null || imageBase64.isBlank()) {
+        if (!StringUtils.hasText(imageBase64)) {
             throw new BadRequestException(
                     REQUIRED_IMAGE,
                     ErrorCode.IMAGE_REQUIRED,
@@ -108,12 +109,12 @@ public class ProductService {
         product.setBasePrice(basePrice);
         product.setType(type);
 
-        if (newImageBase64 != null && !newImageBase64.isBlank()) {
+        if (!StringUtils.hasText(newImageBase64)) {
             String oldUrl = product.getImageUrl();
             String newUrl = cloudinaryService.uploadBase64Image(newImageBase64);
             product.setImageUrl(newUrl);
 
-            if (oldUrl != null && !oldUrl.isBlank()) {
+            if (!StringUtils.hasText(oldUrl)) {
                 cloudinaryService.deleteByUrl(oldUrl);
             }
         }

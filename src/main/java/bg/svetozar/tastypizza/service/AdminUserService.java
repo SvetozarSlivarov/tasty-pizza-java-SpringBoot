@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import static bg.svetozar.tastypizza.exception.ErrorMessage.ADMIN_CANNOT_CHANGE_OWN_ROLE;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.ADMIN_CANNOT_DELETE_SELF;
@@ -41,12 +42,13 @@ public class AdminUserService {
         validateId(id);
         validateRole(newRole);
 
-        Long currentUserId = getCurrentUserId();
-        if (currentUserId != null && currentUserId.equals(id)) {
+        var ctx = ErrorContext.of("userId", id);
+
+        if (Objects.equals(getCurrentUserId(), id)) {
             throw new ForbiddenException(
                     ADMIN_CANNOT_CHANGE_OWN_ROLE,
                     ErrorCode.ADMIN_CANNOT_CHANGE_OWN_ROLE,
-                    ErrorContext.of("userId", id)
+                    ctx
             );
         }
 
@@ -54,21 +56,23 @@ public class AdminUserService {
                 .orElseThrow(() -> new NotFoundException(
                         USER_NOT_FOUND,
                         ErrorCode.USER_NOT_FOUND,
-                        ErrorContext.of("userId", id)
+                        ctx
                 ));
 
         if (user.isDeleted()) {
             throw new ConflictException(
                     USER_IS_DELETED_CANNOT_MODIFIED,
                     ErrorCode.USER_DELETED,
-                    ErrorContext.of("userId", id)
+                    ctx
             );
         }
 
-        if (user.getRole() != newRole) {
-            user.setRole(newRole);
-            user.setTokenVersion(user.getTokenVersion() + 1);
+        if (user.getRole() == newRole) {
+            return toDto(user);
         }
+
+        user.setRole(newRole);
+        user.setTokenVersion(user.getTokenVersion() + 1);
 
         return toDto(user);
     }

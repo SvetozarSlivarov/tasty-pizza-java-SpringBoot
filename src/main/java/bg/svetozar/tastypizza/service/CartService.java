@@ -9,6 +9,7 @@ import bg.svetozar.tastypizza.model.enums.OrderStatus;
 import bg.svetozar.tastypizza.model.enums.ProductType;
 import bg.svetozar.tastypizza.model.mapper.OrderMapper;
 import bg.svetozar.tastypizza.repository.*;
+import bg.svetozar.tastypizza.util.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -123,26 +124,20 @@ public class CartService {
 
         boolean changed = false;
 
-        if (request.quantity() != null) {
-            requirePositiveQty(request.quantity());
-            item.setQuantity(request.quantity());
-            changed = true;
-        }
+        changed |= applyIfPresent(request.quantity(), qty -> {
+            requirePositiveQty(qty);
+            item.setQuantity(qty);
+        });
 
-        if (request.note() != null) {
-            item.setNote(request.note());
-            changed = true;
-        }
+        changed |= applyIfPresent(request.note(), item::setNote);
 
-        if (request.variantId() != null) {
-            applyVariantChange(item, request.variantId());
-            changed = true;
-        }
+        changed |= applyIfPresent(request.variantId(), variantId ->
+                applyVariantChange(item, variantId)
+        );
 
-        if (request.removeIngredientIds() != null || request.addIngredientIds() != null) {
-            applyCustomizationChange(item, request.removeIngredientIds(), request.addIngredientIds());
-            changed = true;
-        }
+        changed |= applyIfAnyPresent(request.removeIngredientIds(), request.addIngredientIds(), () ->
+                applyCustomizationChange(item, request.removeIngredientIds(), request.addIngredientIds())
+        );
 
         if (changed) {
             order.setUpdatedAt(LocalDateTime.now());
@@ -347,11 +342,15 @@ public class CartService {
                         ErrorContext.of("variantId", variantId)
                 ));
 
-        if (!variant.getPizza().getProduct().getId().equals(item.getProduct().getId())) {
+
+        Long variantProductId = variant.getPizza().getProduct().getId();
+        Long itemProductId = item.getProduct().getId();
+
+        if (!Objects.equals(variantProductId, itemProductId)) {
             throw new BadRequestException(
                     PIZZA_VARIANT_NOT_FOUND_FOR_PIZZA,
                     ErrorCode.VARIANT_NOT_BELONG_TO_PIZZA,
-                    buildContext("variantId", variantId, "productId", item.getProduct().getId())
+                    buildContext("variantId", variantId, "productId", itemProductId)
             );
         }
 
@@ -528,13 +527,13 @@ public class CartService {
     ) {
         BigDecimal extrasSum = BigDecimal.ZERO;
 
-        for (Long ingId : addSet) {
-            var allowed = allowedByIngredientId.get(ingId);
+        for (Long ingredientId : addSet) {
+            var allowed = allowedByIngredientId.get(ingredientId);
             if (allowed == null) {
                 throw new BadRequestException(
                         INGREDIENT_NOT_ALLOWED,
                         ErrorCode.INVALID_CUSTOMIZATION,
-                        ErrorContext.of("ingredientId", ingId)
+                        ErrorContext.of("ingredientId", ingredientId)
                 );
             }
 
@@ -632,7 +631,7 @@ public class CartService {
 
         Order userCart = userCartOpt.get();
 
-        if (guestCart.getItems() != null && !guestCart.getItems().isEmpty()) {
+        if (!ValidationUtils.isNullOrEmpty(guestCart.getItems())) {
             List<OrderItem> guestItems = new ArrayList<>(guestCart.getItems());
 
             for (OrderItem guestItem : guestItems) {
@@ -676,7 +675,7 @@ public class CartService {
     }
 
     private void requireCartNotEmpty(Order cart) {
-        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+        if (!ValidationUtils.isNullOrEmpty(cart.getItems())) {
             throw new ConflictException(
                     CANNOT_CHECKOUT_EMPTY_CART,
                     ErrorCode.CART_EMPTY
@@ -721,7 +720,7 @@ public class CartService {
     }
 
     private void requireId(Long id, String field, String code, String message) {
-        if (id == null || id <= 0) {
+        if (ValidationUtils.isInvalidRequiredId(id)) {
             throw new BadRequestException(
                     message,
                     code,
@@ -829,5 +828,16 @@ public class CartService {
         }
 
         return context;
+    }
+    private static <T> boolean applyIfPresent(T value, java.util.function.Consumer<T> applier) {
+        if (value == null) return false;
+        applier.accept(value);
+        return true;
+    }
+
+    private static boolean applyIfAnyPresent(Object a, Object b, Runnable applier) {
+        if (a == null && b == null) return false;
+        applier.run();
+        return true;
     }
 }

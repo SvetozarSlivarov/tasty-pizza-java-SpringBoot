@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_NOT_FOUND_WITH_ID;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_INGREDIENT_ALREADY_EXISTS;
@@ -70,27 +71,37 @@ public class PizzaIngredientService {
     }
 
     public PizzaIngredientDto update(Long pizzaId, Long id, PizzaIngredientRequest request) {
+        Long ingredientId = request.ingredientId();
+
+        var ctxEntity = ErrorContext.of("pizzaId", pizzaId, "id", id);
+        var ctxIngredient = ErrorContext.of("ingredientId", ingredientId);
+        var ctxConflict = ErrorContext.of("pizzaId", pizzaId, "ingredientId", ingredientId);
+
         PizzaIngredient entity = pizzaIngredientRepository.findByIdAndPizza_Id(id, pizzaId)
                 .orElseThrow(() -> new NotFoundException(
                         PIZZA_INGREDIENT_NOT_FOUND_WITH_ID + id,
                         ErrorCode.PIZZA_INGREDIENT_NOT_FOUND,
-                        ErrorContext.of("pizzaId", pizzaId, "id", id)
+                        ctxEntity
                 ));
 
-        Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(request.ingredientId())
+        Ingredient ingredient = ingredientRepository.findByIdAndDeletedFalse(ingredientId)
                 .orElseThrow(() -> new NotFoundException(
-                        INGREDIENT_NOT_FOUND_WITH_ID + request.ingredientId(),
+                        INGREDIENT_NOT_FOUND_WITH_ID + ingredientId,
                         ErrorCode.INGREDIENT_NOT_FOUND,
-                        ErrorContext.of("ingredientId", request.ingredientId())
+                        ctxIngredient
                 ));
 
-        if (pizzaIngredientRepository.existsByPizza_IdAndIngredient_Id(pizzaId, request.ingredientId())
-                && (entity.getIngredient() == null || !entity.getIngredient().getId().equals(request.ingredientId()))) {
+        boolean ingredientAlreadyExists =
+                pizzaIngredientRepository.existsByPizza_IdAndIngredient_Id(pizzaId, ingredientId);
 
+        Long currentIngredientId = entity.getIngredient() != null ? entity.getIngredient().getId() : null;
+        boolean isDifferentIngredient = !Objects.equals(currentIngredientId, ingredientId);
+
+        if (ingredientAlreadyExists && isDifferentIngredient) {
             throw new ConflictException(
                     PIZZA_INGREDIENT_ALREADY_EXISTS,
                     ErrorCode.PIZZA_INGREDIENT_ALREADY_EXISTS,
-                    ErrorContext.of("pizzaId", pizzaId, "ingredientId", request.ingredientId())
+                    ctxConflict
             );
         }
 
