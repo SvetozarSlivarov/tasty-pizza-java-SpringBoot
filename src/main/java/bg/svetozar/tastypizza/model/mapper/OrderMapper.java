@@ -6,6 +6,7 @@ import bg.svetozar.tastypizza.model.dto.order.CartItemDto;
 import bg.svetozar.tastypizza.model.entity.Order;
 import bg.svetozar.tastypizza.model.entity.OrderItem;
 import bg.svetozar.tastypizza.model.entity.OrderItemCustomization;
+import bg.svetozar.tastypizza.model.entity.PastaSauce;
 import bg.svetozar.tastypizza.model.entity.PizzaVariant;
 
 import java.math.BigDecimal;
@@ -42,11 +43,21 @@ public final class OrderMapper {
 
         Long variantId = null;
         String variantLabel = null;
+        Long pastaSauceId = null;
+        String pastaSauceName = null;
+        String pastaSauceSpicyLevel = null;
 
         PizzaVariant variant = item.getPizzaVariant();
         if (variant != null) {
             variantId = variant.getId();
-            variantLabel = variant.getSize().name() + " · " + variant.getDough().name();
+            variantLabel = variant.getSize().name() + " - " + variant.getDough().name();
+        }
+
+        PastaSauce pastaSauce = item.getPastaSauce();
+        if (pastaSauce != null) {
+            pastaSauceId = pastaSauce.getId();
+            pastaSauceName = pastaSauce.getIngredient() != null ? pastaSauce.getIngredient().getName() : null;
+            pastaSauceSpicyLevel = pastaSauce.getSpicyLevel() != null ? pastaSauce.getSpicyLevel().name() : null;
         }
 
         List<CartCustomizationDto> customizations = item.getCustomizations()
@@ -62,6 +73,9 @@ public final class OrderMapper {
                 product.getImageUrl(),
                 variantId,
                 variantLabel,
+                pastaSauceId,
+                pastaSauceName,
+                pastaSauceSpicyLevel,
                 item.getQuantity(),
                 item.getUnitPrice().toString(),
                 item.getNote(),

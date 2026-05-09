@@ -116,6 +116,72 @@ FROM products p
 WHERE p.type = 'DRINK'
   AND NOT EXISTS (SELECT 1 FROM drinks);
 
+INSERT INTO products (type, name, description, base_price, image_url, created_at, is_deleted, deleted_at)
+SELECT x.type, x.name, x.description, x.base_price, x.image_url, NOW(), false, NULL
+FROM (
+         SELECT 'PASTA' AS type, 'Spaghetti Bolognese' AS name, 'Tomato sauce, beef, parmesan, basil.' AS description, 11.90 AS base_price, NULL AS image_url
+         UNION ALL SELECT 'PASTA', 'Penne Alfredo', 'Cream sauce, chicken, parmesan, parsley.', 12.50, NULL
+         UNION ALL SELECT 'PASTA', 'Pesto Fusilli', 'Pesto sauce, cherry tomatoes, parmesan.', 10.90, NULL
+     ) x
+WHERE NOT EXISTS (
+    SELECT 1 FROM products p
+    WHERE p.type = x.type AND p.name = x.name
+);
+
+INSERT INTO pastas (product_id)
+SELECT p.id
+FROM products p
+         JOIN (
+    SELECT 'Spaghetti Bolognese' AS name
+    UNION ALL SELECT 'Penne Alfredo'
+    UNION ALL SELECT 'Pesto Fusilli'
+) x ON x.name = p.name
+WHERE p.type = 'PASTA'
+  AND NOT EXISTS (
+    SELECT 1 FROM pastas pa
+    WHERE pa.product_id = p.id
+);
+
+INSERT INTO pasta_sauces (pasta_id, ingredient_id, extra_price, spicy_level)
+SELECT p.id, i.id, x.extra_price, x.spicy_level
+FROM (
+         SELECT 'Spaghetti Bolognese' AS pasta_name, 'Tomato Sauce' AS ing_name, 0.00 AS extra_price, 'MILD' AS spicy_level
+         UNION ALL SELECT 'Spaghetti Bolognese', 'Spicy Tomato Sauce', 0.80, 'MEDIUM'
+         UNION ALL SELECT 'Penne Alfredo', 'Cream Sauce', 0.00, 'MILD'
+         UNION ALL SELECT 'Penne Alfredo', 'Garlic Sauce', 0.70, 'MILD'
+         UNION ALL SELECT 'Pesto Fusilli', 'Pesto Sauce', 0.00, 'MILD'
+         UNION ALL SELECT 'Pesto Fusilli', 'Chili Sauce', 0.90, 'HOT'
+     ) x
+         JOIN products p ON p.name = x.pasta_name AND p.type = 'PASTA'
+         JOIN ingredients i ON i.name = x.ing_name
+WHERE NOT EXISTS (
+    SELECT 1 FROM pasta_sauces ps
+    WHERE ps.pasta_id = p.id AND ps.ingredient_id = i.id
+);
+
+INSERT INTO pasta_allowed_ingredients (pasta_id, ingredient_id, extra_price)
+SELECT p.id, i.id, x.extra_price
+FROM (
+         SELECT 'Spaghetti Bolognese' AS pasta_name, 'Parmesan' AS ing_name, 1.50 AS extra_price
+         UNION ALL SELECT 'Spaghetti Bolognese', 'Mozzarella', 1.30
+         UNION ALL SELECT 'Spaghetti Bolognese', 'Mushrooms', 1.20
+         UNION ALL SELECT 'Spaghetti Bolognese', 'Chili Flakes', 0.50
+         UNION ALL SELECT 'Penne Alfredo', 'Parmesan', 1.50
+         UNION ALL SELECT 'Penne Alfredo', 'Chicken', 2.00
+         UNION ALL SELECT 'Penne Alfredo', 'Bacon', 2.30
+         UNION ALL SELECT 'Penne Alfredo', 'Black Pepper', 0.40
+         UNION ALL SELECT 'Pesto Fusilli', 'Parmesan', 1.50
+         UNION ALL SELECT 'Pesto Fusilli', 'Cherry Tomatoes', 1.10
+         UNION ALL SELECT 'Pesto Fusilli', 'Chicken', 2.00
+         UNION ALL SELECT 'Pesto Fusilli', 'Garlic', 0.60
+     ) x
+         JOIN products p ON p.name = x.pasta_name AND p.type = 'PASTA'
+         JOIN ingredients i ON i.name = x.ing_name
+WHERE NOT EXISTS (
+    SELECT 1 FROM pasta_allowed_ingredients pai
+    WHERE pai.pasta_id = p.id AND pai.ingredient_id = i.id
+);
+
 INSERT INTO pizza_variants (pizza_id, size, dough, extra_price)
 SELECT p.id, v.size, v.dough, v.extra_price
 FROM products p

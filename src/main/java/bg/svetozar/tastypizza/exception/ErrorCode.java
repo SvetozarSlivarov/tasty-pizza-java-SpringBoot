@@ -42,6 +42,15 @@ public final class ErrorCode {
     public static final String PRODUCT_TYPE_NOT_FOUND = "PRODUCT_TYPE_NOT_FOUND";
 
     public static final String DRINK_NOT_FOUND = "DRINK_NOT_FOUND";
+    public static final String PASTA_ALREADY_DELETED = "PASTA_ALREADY_DELETED";
+    public static final String PASTA_ALLOWED_INGREDIENT_ALREADY_EXISTS = "PASTA_ALLOWED_INGREDIENT_ALREADY_EXISTS";
+    public static final String PASTA_ALLOWED_INGREDIENT_NOT_FOUND = "PASTA_ALLOWED_INGREDIENT_NOT_FOUND";
+    public static final String PASTA_NOT_DELETED = "PASTA_NOT_DELETED";
+    public static final String PASTA_NOT_FOUND = "PASTA_NOT_FOUND";
+    public static final String PASTA_SAUCE_ALREADY_EXISTS = "PASTA_SAUCE_ALREADY_EXISTS";
+    public static final String PASTA_SAUCE_NOT_FOUND = "PASTA_SAUCE_NOT_FOUND";
+    public static final String PASTA_SAUCE_REQUIRED = "PASTA_SAUCE_REQUIRED";
+    public static final String PASTA_SAUCE_NOT_BELONG_TO_PASTA = "PASTA_SAUCE_NOT_BELONG_TO_PASTA";
 
     public static final String DUPLICATE_ALLOWED_INGREDIENT = "DUPLICATE_ALLOWED_INGREDIENT";
     public static final String DUPLICATE_INGREDIENT = "DUPLICATE_PIZZA_INGREDIENT";

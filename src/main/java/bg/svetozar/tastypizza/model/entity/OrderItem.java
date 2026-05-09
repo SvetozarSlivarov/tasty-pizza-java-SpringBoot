@@ -33,6 +33,10 @@ public class OrderItem {
     @JoinColumn(name = "pizza_variant_id")
     private PizzaVariant pizzaVariant;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pasta_sauce_id")
+    private PastaSauce pastaSauce;
+
     @Column(nullable = false)
     private int quantity;
 

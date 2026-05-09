@@ -187,6 +187,16 @@ public class AdminOrderService {
                 + orderItem.getPizzaVariant().getSize().name()
                 : null;
 
+        if (variantLabel == null && orderItem.getPastaSauce() != null) {
+            String sauceName = orderItem.getPastaSauce().getIngredient() != null
+                    ? orderItem.getPastaSauce().getIngredient().getName()
+                    : "Sauce";
+            String spicyLevel = orderItem.getPastaSauce().getSpicyLevel() != null
+                    ? " " + orderItem.getPastaSauce().getSpicyLevel().name()
+                    : "";
+            variantLabel = sauceName + spicyLevel;
+        }
+
         return new AdminOrderItemDto(
                 orderItem.getId(),
                 name,

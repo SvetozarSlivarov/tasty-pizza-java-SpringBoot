@@ -44,6 +44,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         left join fetch o.items i
         left join fetch i.product p
         left join fetch i.pizzaVariant pv
+        left join fetch i.pastaSauce ps
+        left join fetch ps.ingredient psi
         where o.user = :user
           and o.status <> bg.svetozar.tastypizza.model.enums.OrderStatus.CART
         order by o.createdAt desc
@@ -106,7 +108,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "user",
             "items",
             "items.product",
-            "items.pizzaVariant"
+            "items.pizzaVariant",
+            "items.pastaSauce",
+            "items.pastaSauce.ingredient"
     })
     Optional<Order> findAdminDetailById(Long id);
 }

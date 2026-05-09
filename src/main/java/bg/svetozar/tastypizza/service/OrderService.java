@@ -193,6 +193,35 @@ public class OrderService {
                     continue;
                 }
 
+                if (type == ProductType.PASTA) {
+                    Long pastaSauceId = item.getPastaSauce() != null ? item.getPastaSauce().getId() : null;
+                    if (pastaSauceId == null) {
+                        skipped++;
+                        messages.add("Pasta skipped: missing sauce for productId=" + item.getProduct().getId());
+                        continue;
+                    }
+
+                    List<Long> addIds = new ArrayList<>();
+
+                    if (item.getCustomizations() != null) {
+                        for (OrderItemCustomization c : item.getCustomizations()) {
+                            if (c.getIngredient() == null || c.getAction() == null) continue;
+                            if (c.getAction() == OrderItemCustomizationAction.ADD) addIds.add(c.getIngredient().getId());
+                        }
+                    }
+
+                    cart = cartService.addPastaToExistingCart(
+                            cartOrder,
+                            item.getProduct().getId(),
+                            pastaSauceId,
+                            item.getQuantity(),
+                            item.getNote(),
+                            addIds
+                    );
+                    added++;
+                    continue;
+                }
+
                 skipped++;
                 messages.add("Item skipped: unsupported product type for productId=" + item.getProduct().getId());
 

@@ -94,6 +94,26 @@ public class CartController {
         return ResponseEntity.ok(cart);
     }
 
+    @PostMapping("/items/pasta")
+    public ResponseEntity<CartDto> addPastaToCart(
+            @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
+            HttpServletResponse response,
+            @Valid @RequestBody AddPastaToCartRequest request
+    ) {
+        String guestToken = ensureCartTokenCookie(cartToken, response);
+
+        CartDto cart = cartService.addPastaToCart(
+                guestToken,
+                request.productId(),
+                request.pastaSauceId(),
+                request.quantity(),
+                request.note(),
+                request.addIngredientIds()
+        );
+
+        return ResponseEntity.ok(cart);
+    }
+
     @PatchMapping("/items/{itemId}")
     public ResponseEntity<CartDto> updateCartItem(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,

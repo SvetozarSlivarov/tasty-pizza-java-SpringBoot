@@ -36,8 +36,13 @@ import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENTS_DO_NOT_E
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_PRODUCT_TYPE;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.ONLY_PIZZA_CHANGE_VARIANT;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.ONLY_PIZZA_CUSTOMIZATION;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.ONLY_PASTA_CHANGE_SAUCE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.ONLY_PASTA_CUSTOMIZATION;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.ORDER_IS_NOT_CART;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.ORDER_ITEM_NOT_FOUND;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PASTA_ENTITY_NOT_FOUND_PRODUCT;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PASTA_SAUCE_NOT_FOUND;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.PASTA_SAUCE_NOT_FOUND_FOR_PASTA;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_ENTITY_NOT_FOUND_PRODUCT;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_VARIANT_NOT_FOUND;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.PIZZA_VARIANT_NOT_FOUND_FOR_PIZZA;
@@ -46,6 +51,7 @@ import static bg.svetozar.tastypizza.exception.ErrorMessage.PRODUCT_DELETED;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.PRODUCT_NOT_FOUND;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_ADDRESS;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_PHONE;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_PASTA_SAUCE_ID;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_VARIANTS;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_PRODUCT_ID;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_ORDER_ITEM_ID;
@@ -63,6 +69,9 @@ public class CartService {
     private final OrderItemCustomizationRepository orderItemCustomizationRepository;
     private final IngredientRepository ingredientRepository;
     private final PizzaRepository pizzaRepository;
+    private final PastaRepository pastaRepository;
+    private final PastaSauceRepository pastaSauceRepository;
+    private final PastaAllowedIngredientRepository pastaAllowedIngredientRepository;
 
     public CartDto getCurrentCart(String guestToken) {
         User user = getCurrentUserOrNull();
@@ -115,6 +124,31 @@ public class CartService {
         return OrderMapper.toCartDto(order);
     }
 
+    public CartDto addPastaToCart(String guestToken,
+                                  Long pastaProductId,
+                                  Long pastaSauceId,
+                                  int quantity,
+                                  String note,
+                                  List<Long> addIngredientIds) {
+        requirePositiveQty(quantity);
+        requireId(pastaSauceId, "pastaSauceId", ErrorCode.PASTA_SAUCE_REQUIRED, REQUIRED_PASTA_SAUCE_ID);
+
+        Order order = resolveCurrentCart(guestToken);
+
+        Product product = requireActiveProductOfType(pastaProductId, ProductType.PASTA);
+        PastaAndSauce ps = requirePastaAndSauce(product, pastaSauceId);
+
+        BigDecimal unitPrice = calcPastaBaseUnitPrice(product, ps.sauce);
+        OrderItem item = createAndSavePastaItem(order, product, ps.sauce, quantity, note, unitPrice);
+
+        BigDecimal extrasSum = applyPastaCustomizations(item, ps.pasta, addIngredientIds);
+        item.setUnitPrice(unitPrice.add(extrasSum));
+
+        attachItemToOrderAndTouch(order, item);
+
+        return OrderMapper.toCartDto(order);
+    }
+
     public CartDto patchCartItem(String guestToken, Long orderItemId, UpdateCartItemRequest request) {
         User user = getCurrentUserOrNull();
 
@@ -133,6 +167,10 @@ public class CartService {
 
         changed |= applyIfPresent(request.variantId(), variantId ->
                 applyVariantChange(item, variantId)
+        );
+
+        changed |= applyIfPresent(request.pastaSauceId(), sauceId ->
+                applyPastaSauceChange(item, sauceId)
         );
 
         changed |= applyIfAnyPresent(request.removeIngredientIds(), request.addIngredientIds(), () ->
@@ -201,6 +239,31 @@ public class CartService {
         OrderItem item = createAndSavePizzaItem(order, product, pv.variant, quantity, note, unitPrice);
 
         BigDecimal extrasSum = applyPizzaCustomizations(item, pv.pizza, removeIngredientIds, addIngredientIds);
+        item.setUnitPrice(unitPrice.add(extrasSum));
+
+        attachItemToOrderAndTouch(order, item);
+
+        return OrderMapper.toCartDto(order);
+    }
+
+    public CartDto addPastaToExistingCart(
+            Order order,
+            Long pastaProductId,
+            Long pastaSauceId,
+            int quantity,
+            String note,
+            List<Long> addIngredientIds
+    ) {
+        requirePositiveQty(quantity);
+        requireId(pastaSauceId, "pastaSauceId", ErrorCode.PASTA_SAUCE_REQUIRED, REQUIRED_PASTA_SAUCE_ID);
+
+        Product product = requireActiveProductOfType(pastaProductId, ProductType.PASTA);
+        PastaAndSauce ps = requirePastaAndSauce(product, pastaSauceId);
+
+        BigDecimal unitPrice = calcPastaBaseUnitPrice(product, ps.sauce);
+        OrderItem item = createAndSavePastaItem(order, product, ps.sauce, quantity, note, unitPrice);
+
+        BigDecimal extrasSum = applyPastaCustomizations(item, ps.pasta, addIngredientIds);
         item.setUnitPrice(unitPrice.add(extrasSum));
 
         attachItemToOrderAndTouch(order, item);
@@ -298,6 +361,12 @@ public class CartService {
         return base.add(variantExtra);
     }
 
+    private BigDecimal calcPastaBaseUnitPrice(Product product, PastaSauce sauce) {
+        BigDecimal base = nullToZero(product.getBasePrice());
+        BigDecimal sauceExtra = nullToZero(sauce.getExtraPrice());
+        return base.add(sauceExtra);
+    }
+
     private OrderItem createAndSavePizzaItem(
             Order order,
             Product product,
@@ -310,6 +379,27 @@ public class CartService {
                 .order(order)
                 .product(product)
                 .pizzaVariant(variant)
+                .quantity(quantity)
+                .unitPrice(unitPrice)
+                .note(note)
+                .build();
+
+        orderItemRepository.save(item);
+        return item;
+    }
+
+    private OrderItem createAndSavePastaItem(
+            Order order,
+            Product product,
+            PastaSauce sauce,
+            int quantity,
+            String note,
+            BigDecimal unitPrice
+    ) {
+        OrderItem item = OrderItem.builder()
+                .order(order)
+                .product(product)
+                .pastaSauce(sauce)
                 .quantity(quantity)
                 .unitPrice(unitPrice)
                 .note(note)
@@ -366,9 +456,78 @@ public class CartService {
         recalcPizzaUnitPrice(item, pizza);
     }
 
+    private void applyPastaSauceChange(OrderItem item, Long pastaSauceId) {
+        if (item.getProduct().getType() != ProductType.PASTA) {
+            throw new BadRequestException(
+                    ONLY_PASTA_CHANGE_SAUCE,
+                    ErrorCode.INVALID_OPERATION,
+                    ErrorContext.of("orderItemId", item.getId())
+            );
+        }
+
+        requireId(pastaSauceId, "pastaSauceId", ErrorCode.PASTA_SAUCE_REQUIRED, REQUIRED_PASTA_SAUCE_ID);
+
+        Pasta pasta = pastaRepository.findByProduct(item.getProduct())
+                .orElseThrow(() -> new NotFoundException(
+                        PASTA_ENTITY_NOT_FOUND_PRODUCT,
+                        ErrorCode.PASTA_NOT_FOUND,
+                        ErrorContext.of("productId", item.getProduct().getId())
+                ));
+
+        PastaSauce sauce = pastaSauceRepository.findById(pastaSauceId)
+                .orElseThrow(() -> new NotFoundException(
+                        PASTA_SAUCE_NOT_FOUND,
+                        ErrorCode.PASTA_SAUCE_NOT_FOUND,
+                        ErrorContext.of("pastaSauceId", pastaSauceId)
+                ));
+
+        if (!sauce.getPasta().getId().equals(pasta.getId())) {
+            throw new BadRequestException(
+                    PASTA_SAUCE_NOT_FOUND_FOR_PASTA,
+                    ErrorCode.PASTA_SAUCE_NOT_BELONG_TO_PASTA,
+                    buildContext("pastaSauceId", pastaSauceId, "pastaId", pasta.getId())
+            );
+        }
+
+        item.setPastaSauce(sauce);
+        recalcPastaUnitPrice(item, pasta);
+    }
+
     private void applyCustomizationChange(OrderItem item,
                                           List<Long> removeIngredientIds,
                                           List<Long> addIngredientIds) {
+        if (item.getProduct().getType() == ProductType.PASTA) {
+            if (removeIngredientIds != null && !removeIngredientIds.isEmpty()) {
+                throw new BadRequestException(
+                        ONLY_PASTA_CUSTOMIZATION,
+                        ErrorCode.INVALID_OPERATION,
+                        ErrorContext.of("orderItemId", item.getId())
+                );
+            }
+
+            Pasta pasta = pastaRepository.findByProduct(item.getProduct())
+                    .orElseThrow(() -> new NotFoundException(
+                            PASTA_ENTITY_NOT_FOUND_PRODUCT,
+                            ErrorCode.PASTA_NOT_FOUND,
+                            ErrorContext.of("productId", item.getProduct().getId())
+                    ));
+
+            item.getCustomizations().clear();
+            orderItemCustomizationRepository.deleteAll(
+                    orderItemCustomizationRepository.findByOrderItem(item)
+            );
+
+            BigDecimal extrasSum = applyPastaCustomizations(item, pasta, addIngredientIds);
+
+            BigDecimal base = nullToZero(item.getProduct().getBasePrice());
+            BigDecimal sauceExtra = item.getPastaSauce() != null
+                    ? nullToZero(item.getPastaSauce().getExtraPrice())
+                    : BigDecimal.ZERO;
+
+            item.setUnitPrice(base.add(sauceExtra).add(extrasSum));
+            return;
+        }
+
         if (item.getProduct().getType() != ProductType.PIZZA) {
             throw new BadRequestException(
                     ONLY_PIZZA_CUSTOMIZATION,
@@ -418,6 +577,22 @@ public class CartService {
 
         applyRemoveCustomizations(item, removeSet, baseByIngredientId);
         BigDecimal extrasSum = applyAddCustomizations(item, addSet, allowedByIngredientId);
+
+        orderItemCustomizationRepository.saveAll(item.getCustomizations());
+        return extrasSum;
+    }
+
+    private BigDecimal applyPastaCustomizations(
+            OrderItem item,
+            Pasta pasta,
+            List<Long> addIngredientIds
+    ) {
+        var addSet = toIdSet(addIngredientIds);
+
+        validateIngredientsExistAndNotDeleted(addSet);
+
+        var allowedByIngredientId = mapPastaAllowedIngredients(pasta);
+        BigDecimal extrasSum = applyPastaAddCustomizations(item, addSet, allowedByIngredientId);
 
         orderItemCustomizationRepository.saveAll(item.getCustomizations());
         return extrasSum;
@@ -493,6 +668,15 @@ public class CartService {
                 ));
     }
 
+    private Map<Long, PastaAllowedIngredient> mapPastaAllowedIngredients(Pasta pasta) {
+        List<PastaAllowedIngredient> allowed = pastaAllowedIngredientRepository.findAllByPastaWithIngredient(pasta);
+        return allowed.stream()
+                .collect(Collectors.toMap(
+                        pastaAllowedIngredient -> pastaAllowedIngredient.getIngredient().getId(),
+                        pastaAllowedIngredient -> pastaAllowedIngredient
+                ));
+    }
+
     private void applyRemoveCustomizations(
             OrderItem item,
             Set<Long> removeSet,
@@ -524,6 +708,33 @@ public class CartService {
             OrderItem item,
             Set<Long> addSet,
             Map<Long, PizzaAllowedIngredient> allowedByIngredientId
+    ) {
+        BigDecimal extrasSum = BigDecimal.ZERO;
+
+        for (Long ingredientId : addSet) {
+            var allowed = allowedByIngredientId.get(ingredientId);
+            if (allowed == null) {
+                throw new BadRequestException(
+                        INGREDIENT_NOT_ALLOWED,
+                        ErrorCode.INVALID_CUSTOMIZATION,
+                        ErrorContext.of("ingredientId", ingredientId)
+                );
+            }
+
+            Ingredient ingredient = allowed.getIngredient();
+            BigDecimal extra = nullToZero(allowed.getExtraPrice());
+            extrasSum = extrasSum.add(extra);
+
+            item.getCustomizations().add(newCustomization(item, ingredient, OrderItemCustomizationAction.ADD));
+        }
+
+        return extrasSum;
+    }
+
+    private BigDecimal applyPastaAddCustomizations(
+            OrderItem item,
+            Set<Long> addSet,
+            Map<Long, PastaAllowedIngredient> allowedByIngredientId
     ) {
         BigDecimal extrasSum = BigDecimal.ZERO;
 
@@ -580,6 +791,29 @@ public class CartService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         item.setUnitPrice(base.add(variantExtra).add(extrasSum));
+    }
+
+    private void recalcPastaUnitPrice(OrderItem item, Pasta pasta) {
+        BigDecimal base = nullToZero(item.getProduct().getBasePrice());
+        BigDecimal sauceExtra = item.getPastaSauce() != null
+                ? nullToZero(item.getPastaSauce().getExtraPrice())
+                : BigDecimal.ZERO;
+
+        Map<Long, BigDecimal> allowedExtraByIngredientId = pastaAllowedIngredientRepository.findAllByPastaWithIngredient(pasta).stream()
+                .collect(Collectors.toMap(
+                        pastaAllowedIngredient -> pastaAllowedIngredient.getIngredient().getId(),
+                        pastaAllowedIngredient -> nullToZero(pastaAllowedIngredient.getExtraPrice())
+                ));
+
+        BigDecimal extrasSum = item.getCustomizations().stream()
+                .filter(customization -> customization.getAction() == OrderItemCustomizationAction.ADD)
+                .map(customization -> {
+                    if (customization.getIngredient() == null) return BigDecimal.ZERO;
+                    return allowedExtraByIngredientId.getOrDefault(customization.getIngredient().getId(), BigDecimal.ZERO);
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        item.setUnitPrice(base.add(sauceExtra).add(extrasSum));
     }
 
     private void ensureCanModifyOrder(Order order, User currentUser, String guestToken) {
@@ -781,6 +1015,16 @@ public class CartService {
         }
     }
 
+    private static class PastaAndSauce {
+        private final Pasta pasta;
+        private final PastaSauce sauce;
+
+        private PastaAndSauce(Pasta pasta, PastaSauce sauce) {
+            this.pasta = pasta;
+            this.sauce = sauce;
+        }
+    }
+
     private PizzaAndVariant requirePizzaAndVariant(Product pizzaProduct, Long variantId) {
         Pizza pizza = pizzaRepository.findByProduct(pizzaProduct)
                 .orElseThrow(() -> new NotFoundException(
@@ -805,6 +1049,32 @@ public class CartService {
         }
 
         return new PizzaAndVariant(pizza, variant);
+    }
+
+    private PastaAndSauce requirePastaAndSauce(Product pastaProduct, Long pastaSauceId) {
+        Pasta pasta = pastaRepository.findByProduct(pastaProduct)
+                .orElseThrow(() -> new NotFoundException(
+                        PASTA_ENTITY_NOT_FOUND_PRODUCT,
+                        ErrorCode.PASTA_NOT_FOUND,
+                        ErrorContext.of("productId", pastaProduct.getId())
+                ));
+
+        PastaSauce sauce = pastaSauceRepository.findById(pastaSauceId)
+                .orElseThrow(() -> new NotFoundException(
+                        PASTA_SAUCE_NOT_FOUND,
+                        ErrorCode.PASTA_SAUCE_NOT_FOUND,
+                        ErrorContext.of("pastaSauceId", pastaSauceId)
+                ));
+
+        if (!sauce.getPasta().getId().equals(pasta.getId())) {
+            throw new BadRequestException(
+                    PASTA_SAUCE_NOT_FOUND_FOR_PASTA,
+                    ErrorCode.PASTA_SAUCE_NOT_BELONG_TO_PASTA,
+                    buildContext("pastaSauceId", pastaSauceId, "pastaId", pasta.getId())
+            );
+        }
+
+        return new PastaAndSauce(pasta, sauce);
     }
 
     private BigDecimal nullToZero(BigDecimal value) {

@@ -12,6 +12,15 @@ public final class ErrorMessage {
     public static final String PRODUCT_NOT_FOUND =  "Product not found ";
     public static final String PRODUCT_NOT_FOUND_FOR_PIZZA = "Product not found for pizza";
     public static final String DRINK_NOT_FOUND = "Drink not found ";
+    public static final String PASTA_NOT_FOUND = "Pasta not found";
+    public static final String PASTA_NOT_FOUND_WITH_ID = "Pasta not found with id: ";
+    public static final String PRODUCT_NOT_FOUND_FOR_PASTA = "Product not found for pasta";
+    public static final String PASTA_ALREADY_DELETED = "Pasta is already deleted";
+    public static final String PASTA_NOT_DELETED = "Pasta is not deleted";
+    public static final String PASTA_ALLOWED_INGREDIENT_NOT_FOUND_WITH_ID = "PastaAllowedIngredient not found: ";
+    public static final String PASTA_SAUCE_NOT_FOUND_WITH_ID = "PastaSauce not found: ";
+    public static final String PASTA_ALLOWED_INGREDIENT_ALREADY_EXISTS = "Ingredient is already allowed for this pasta";
+    public static final String PASTA_SAUCE_ALREADY_EXISTS = "Sauce is already allowed for this pasta";
     public static final String PIZZA_NOT_FOUND = "Pizza not found";
     public static final String ALLOWED_INGREDIENT_NOT_FOUND = "Allowed Ingredient not found";
     public static final String ALLOWED_INGREDIENT_NOT_FOUND_WITH_ID = "PizzaAllowedIngredient not found: ";
@@ -50,8 +59,11 @@ public final class ErrorMessage {
     public static final String INGREDIENTS_DO_NOT_EXIST = "Some ingredients do not exist";
     public static final String INGREDIENT_CANNOT_BE_BOTH_ADDED_AND_REMOVED = "Ingredient cannot be both added and removed";
     public static final String PIZZA_ENTITY_NOT_FOUND_PRODUCT = "Pizza entity not found for product";
+    public static final String PASTA_ENTITY_NOT_FOUND_PRODUCT = "Pasta entity not found for product";
     public static final String PIZZA_VARIANT_NOT_FOUND = "Pizza variant not found";
     public static final String PIZZA_VARIANT_NOT_FOUND_FOR_PIZZA = "Variant does not belong to given pizza";
+    public static final String PASTA_SAUCE_NOT_FOUND = "Pasta sauce not found";
+    public static final String PASTA_SAUCE_NOT_FOUND_FOR_PASTA = "Sauce does not belong to given pasta";
     public static final String ORDER_IS_NOT_CART = "Order is not a cart";
     public static final String REQUIRED_PHONE = "Phone is required";
     public static final String REQUIRED_ADDRESS = "Address is required";
@@ -59,6 +71,8 @@ public final class ErrorMessage {
     public static final String CANNOT_CHECKOUT_EMPTY_CART = "Cannot checkout empty cart";
     public static final String ONLY_PIZZA_CHANGE_VARIANT = "Only pizza items can change variant";
     public static final String ONLY_PIZZA_CUSTOMIZATION = "Only pizza items support customizations";
+    public static final String ONLY_PASTA_CHANGE_SAUCE = "Only pasta items can change sauce";
+    public static final String ONLY_PASTA_CUSTOMIZATION = "Only pasta items support add-ons";
     public static final String INGREDIENT_NOT_FOUND = "Ingredient not found ";
     public static final String INGREDIENT_NOT_FOUND_WITH_ID = "Ingredient not found with id: ";
     public static final String INGREDIENT_NOT_FOUND_OR_DELETE =  "Ingredient not found or deleted ";
@@ -119,6 +133,8 @@ public final class ErrorMessage {
     public static final String INVALID_NOTE_MAX_300_CHARS = "Note max 300 characters";
     public static final String REQUIRED_VARIANT_ID = "Variant id is required";
     public static final String INVALID_VARIANT_ID_POSITIVE = "Variant id must be positive";
+    public static final String REQUIRED_PASTA_SAUCE_ID = "Pasta sauce id is required";
+    public static final String INVALID_PASTA_SAUCE_ID_POSITIVE = "Pasta sauce id must be positive";
     public static final String INVALID_REMOVE_INGREDIENT_IDS_POSITIVE = "Remove ingredient id must be positive";
     public static final String INVALID_ADD_INGREDIENT_IDS_POSITIVE =  "Adding ingredient id must be positive";
     public static final String INVALID_PHONE_NUMBER_MAX_30_CHARS = "Phone number max 30 characters";
@@ -132,6 +148,11 @@ public final class ErrorMessage {
     public static final String REQUIRED_ALLOWED_INGREDIENTS = "Allowed ingredients are required";
     public static final String REQUIRED_PIZZA_BASE_PRICE = "Base price is required";
     public static final String INVALID_PIZZA_BASE_PRICE_2_DECIMALS = "Base price must be a valid number with up to 2 decimals";
+    public static final String INVALID_PASTA_DESCRIPTION_MAX_1000_CHARS = "Description must be at most 1000 characters";
+    public static final String INVALID_PASTA_NAME_BETWEEN_2_100_CHARS = "Pasta name must be between 2 and 100 characters";
+    public static final String REQUIRED_PASTA_SAUCES = "Pasta sauces are required";
+    public static final String REQUIRED_PASTA_BASE_PRICE = "Base price is required";
+    public static final String INVALID_PASTA_BASE_PRICE_2_DECIMALS = "Base price must be a valid number with up to 2 decimals";
 
     public static final String REQUIRED_PIZZA_SIZE = "Pizza size is required";
     public static final String INVALID_PIZZA_SIZE_MAX_20_CHARS = "Pizza size must be at most 20 characters";
