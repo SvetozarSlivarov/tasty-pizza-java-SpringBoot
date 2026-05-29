@@ -94,11 +94,11 @@ FROM (
          UNION ALL SELECT 'DRINK', 'Iced Tea Lemon 500ml', 'Iced tea lemon.', 3.00, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1766516311/ChatGPT_Image_23.12.2025_%D0%B3._20_56_30_gwtn3n.png'
          UNION ALL SELECT 'DRINK', 'Orange Juice 330ml', 'Orange juice.', 3.20, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1766516311/ChatGPT_Image_23.12.2025_%D0%B3._20_56_26_yjrta1.png'
 
-         UNION ALL SELECT 'PASTA', 'Spaghetti', 'Classic Italian spaghetti pasta.', 8.90, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1766519001/spaghetti_pasta.png'
-         UNION ALL SELECT 'PASTA', 'Tagliatelle', 'Flat ribbon pasta.', 9.50, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1766519002/tagliatelle_pasta.png'
-         UNION ALL SELECT 'PASTA', 'Penne', 'Tube-shaped pasta.', 8.90, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1766519003/penne_pasta.png'
-         UNION ALL SELECT 'PASTA', 'Fusilli', 'Spiral-shaped pasta.', 8.90, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1766519004/fusilli_pasta.png'
-         UNION ALL SELECT 'PASTA', 'Rigatoni', 'Large tube-shaped pasta.', 9.20, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1766519005/rigatoni_pasta.png'
+         UNION ALL SELECT 'PASTA', 'Spaghetti', 'Classic Italian spaghetti pasta.', 8.90, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1779545014/ChatGPT_Image_23.05.2026_%D0%B3._16_58_00_iit6tm.png'
+         UNION ALL SELECT 'PASTA', 'Tagliatelle', 'Flat ribbon pasta.', 9.50, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1779545014/ChatGPT_Image_23.05.2026_%D0%B3._16_59_23_rtcxbz.png'
+         UNION ALL SELECT 'PASTA', 'Penne', 'Tube-shaped pasta.', 8.90, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1779545014/ChatGPT_Image_23.05.2026_%D0%B3._17_03_12_nh1edp.png'
+         UNION ALL SELECT 'PASTA', 'Fusilli', 'Spiral-shaped pasta.', 8.90, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1779545014/ChatGPT_Image_23.05.2026_%D0%B3._17_03_07_skjckq.png'
+         UNION ALL SELECT 'PASTA', 'Rigatoni', 'Large tube-shaped pasta.', 9.20, 'https://res.cloudinary.com/dea47xrrc/image/upload/v1779545014/ChatGPT_Image_23.05.2026_%D0%B3._17_02_46_r3dkzq.png'
      ) x
 WHERE NOT EXISTS (
     SELECT 1
@@ -119,14 +119,168 @@ FROM products p
     UNION ALL SELECT 'Veggie', 'MILD'
     UNION ALL SELECT 'Four Cheese', 'MILD'
 ) x ON x.name = p.name
-WHERE NOT EXISTS (SELECT 1 FROM pizzas);
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM pizzas pi
+    WHERE pi.product_id = p.id
+);
+
+
+INSERT INTO pizza_variants (pizza_id, size, dough, extra_price)
+SELECT pi.product_id, x.size, x.dough, x.extra_price
+FROM (
+         SELECT 'Margherita' AS pizza_name, 'SMALL' AS size, 'CLASSIC' AS dough, 0.00 AS extra_price
+         UNION ALL SELECT 'Margherita', 'MEDIUM', 'CLASSIC', 2.00
+         UNION ALL SELECT 'Margherita', 'LARGE', 'CLASSIC', 4.00
+         UNION ALL SELECT 'Margherita', 'MEDIUM', 'THIN', 2.00
+         UNION ALL SELECT 'Margherita', 'MEDIUM', 'WHOLEGRAIN', 2.50
+
+         UNION ALL SELECT 'Pepperoni', 'SMALL', 'CLASSIC', 0.00
+         UNION ALL SELECT 'Pepperoni', 'MEDIUM', 'CLASSIC', 2.50
+         UNION ALL SELECT 'Pepperoni', 'LARGE', 'CLASSIC', 4.80
+         UNION ALL SELECT 'Pepperoni', 'MEDIUM', 'THIN', 2.50
+         UNION ALL SELECT 'Pepperoni', 'MEDIUM', 'WHOLEGRAIN', 3.00
+
+         UNION ALL SELECT 'BBQ Chicken', 'SMALL', 'CLASSIC', 0.00
+         UNION ALL SELECT 'BBQ Chicken', 'MEDIUM', 'CLASSIC', 2.70
+         UNION ALL SELECT 'BBQ Chicken', 'LARGE', 'CLASSIC', 5.00
+         UNION ALL SELECT 'BBQ Chicken', 'MEDIUM', 'THIN', 2.70
+         UNION ALL SELECT 'BBQ Chicken', 'MEDIUM', 'WHOLEGRAIN', 3.20
+
+         UNION ALL SELECT 'Hawaiian', 'SMALL', 'CLASSIC', 0.00
+         UNION ALL SELECT 'Hawaiian', 'MEDIUM', 'CLASSIC', 2.40
+         UNION ALL SELECT 'Hawaiian', 'LARGE', 'CLASSIC', 4.60
+         UNION ALL SELECT 'Hawaiian', 'MEDIUM', 'THIN', 2.40
+         UNION ALL SELECT 'Hawaiian', 'MEDIUM', 'WHOLEGRAIN', 2.90
+
+         UNION ALL SELECT 'Veggie', 'SMALL', 'CLASSIC', 0.00
+         UNION ALL SELECT 'Veggie', 'MEDIUM', 'CLASSIC', 2.20
+         UNION ALL SELECT 'Veggie', 'LARGE', 'CLASSIC', 4.20
+         UNION ALL SELECT 'Veggie', 'MEDIUM', 'THIN', 2.20
+         UNION ALL SELECT 'Veggie', 'MEDIUM', 'WHOLEGRAIN', 2.70
+
+         UNION ALL SELECT 'Four Cheese', 'SMALL', 'CLASSIC', 0.00
+         UNION ALL SELECT 'Four Cheese', 'MEDIUM', 'CLASSIC', 2.80
+         UNION ALL SELECT 'Four Cheese', 'LARGE', 'CLASSIC', 5.20
+         UNION ALL SELECT 'Four Cheese', 'MEDIUM', 'THIN', 2.80
+         UNION ALL SELECT 'Four Cheese', 'MEDIUM', 'WHOLEGRAIN', 3.30
+     ) x
+         JOIN products p ON p.name = x.pizza_name AND p.type = 'PIZZA'
+         JOIN pizzas pi ON pi.product_id = p.id
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM pizza_variants pv
+    WHERE pv.pizza_id = pi.product_id
+      AND pv.size = x.size
+      AND pv.dough = x.dough
+);
+
+
+INSERT INTO pizza_ingredients (pizza_id, ingredient_id, is_removable)
+SELECT pi.product_id, i.id, x.is_removable
+FROM (
+         SELECT 'Margherita' AS pizza_name, 'Tomato Sauce' AS ing_name, false AS is_removable
+         UNION ALL SELECT 'Margherita', 'Mozzarella', false
+         UNION ALL SELECT 'Margherita', 'Oregano', true
+         UNION ALL SELECT 'Margherita', 'Basil', true
+
+         UNION ALL SELECT 'Pepperoni', 'Tomato Sauce', false
+         UNION ALL SELECT 'Pepperoni', 'Mozzarella', false
+         UNION ALL SELECT 'Pepperoni', 'Pepperoni', true
+         UNION ALL SELECT 'Pepperoni', 'Oregano', true
+
+         UNION ALL SELECT 'BBQ Chicken', 'BBQ Sauce', false
+         UNION ALL SELECT 'BBQ Chicken', 'Mozzarella', false
+         UNION ALL SELECT 'BBQ Chicken', 'Chicken', true
+         UNION ALL SELECT 'BBQ Chicken', 'Red Onion', true
+
+         UNION ALL SELECT 'Hawaiian', 'Tomato Sauce', false
+         UNION ALL SELECT 'Hawaiian', 'Mozzarella', false
+         UNION ALL SELECT 'Hawaiian', 'Ham', true
+         UNION ALL SELECT 'Hawaiian', 'Pineapple', true
+
+         UNION ALL SELECT 'Veggie', 'Tomato Sauce', false
+         UNION ALL SELECT 'Veggie', 'Mozzarella', false
+         UNION ALL SELECT 'Veggie', 'Mushrooms', true
+         UNION ALL SELECT 'Veggie', 'Green Peppers', true
+         UNION ALL SELECT 'Veggie', 'Black Olives', true
+         UNION ALL SELECT 'Veggie', 'Tomatoes', true
+
+         UNION ALL SELECT 'Four Cheese', 'Mozzarella', false
+         UNION ALL SELECT 'Four Cheese', 'Cheddar', true
+         UNION ALL SELECT 'Four Cheese', 'Parmesan', true
+         UNION ALL SELECT 'Four Cheese', 'Blue Cheese', true
+     ) x
+         JOIN products p ON p.name = x.pizza_name AND p.type = 'PIZZA'
+         JOIN pizzas pi ON pi.product_id = p.id
+         JOIN ingredients i ON i.name = x.ing_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM pizza_ingredients ping
+    WHERE ping.pizza_id = pi.product_id
+      AND ping.ingredient_id = i.id
+);
+
+
+INSERT INTO pizza_allowed_ingredients (pizza_id, ingredient_id, extra_price)
+SELECT pi.product_id, i.id, x.extra_price
+FROM (
+         SELECT 'Margherita' AS pizza_name, 'Parmesan' AS ing_name, 1.50 AS extra_price
+         UNION ALL SELECT 'Margherita', 'Cherry Tomatoes', 1.10
+         UNION ALL SELECT 'Margherita', 'Black Olives', 1.10
+         UNION ALL SELECT 'Margherita', 'Mushrooms', 1.20
+         UNION ALL SELECT 'Margherita', 'Prosciutto', 2.80
+
+         UNION ALL SELECT 'Pepperoni', 'Cheddar', 1.40
+         UNION ALL SELECT 'Pepperoni', 'Bacon', 2.30
+         UNION ALL SELECT 'Pepperoni', 'Jalapeno', 1.10
+         UNION ALL SELECT 'Pepperoni', 'Mushrooms', 1.20
+         UNION ALL SELECT 'Pepperoni', 'Chili Flakes', 0.50
+
+         UNION ALL SELECT 'BBQ Chicken', 'Bacon', 2.30
+         UNION ALL SELECT 'BBQ Chicken', 'Corn', 1.00
+         UNION ALL SELECT 'BBQ Chicken', 'Roasted Peppers', 1.20
+         UNION ALL SELECT 'BBQ Chicken', 'Cheddar', 1.40
+         UNION ALL SELECT 'BBQ Chicken', 'Ranch Sauce', 0.80
+
+         UNION ALL SELECT 'Hawaiian', 'Bacon', 2.30
+         UNION ALL SELECT 'Hawaiian', 'Chicken', 2.00
+         UNION ALL SELECT 'Hawaiian', 'Cheddar', 1.40
+         UNION ALL SELECT 'Hawaiian', 'Corn', 1.00
+         UNION ALL SELECT 'Hawaiian', 'Jalapeno', 1.10
+
+         UNION ALL SELECT 'Veggie', 'Spinach', 1.00
+         UNION ALL SELECT 'Veggie', 'Corn', 1.00
+         UNION ALL SELECT 'Veggie', 'Red Onion', 0.80
+         UNION ALL SELECT 'Veggie', 'Green Olives', 1.10
+         UNION ALL SELECT 'Veggie', 'Feta', 1.50
+
+         UNION ALL SELECT 'Four Cheese', 'Goat Cheese', 1.80
+         UNION ALL SELECT 'Four Cheese', 'Gouda', 1.50
+         UNION ALL SELECT 'Four Cheese', 'Provolone', 1.60
+         UNION ALL SELECT 'Four Cheese', 'Ricotta', 1.50
+         UNION ALL SELECT 'Four Cheese', 'Bacon', 2.30
+     ) x
+         JOIN products p ON p.name = x.pizza_name AND p.type = 'PIZZA'
+         JOIN pizzas pi ON pi.product_id = p.id
+         JOIN ingredients i ON i.name = x.ing_name
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM pizza_allowed_ingredients pai
+    WHERE pai.pizza_id = pi.product_id
+      AND pai.ingredient_id = i.id
+);
 
 
 INSERT INTO drinks (product_id)
 SELECT p.id
 FROM products p
 WHERE p.type = 'DRINK'
-  AND NOT EXISTS (SELECT 1 FROM drinks);
+  AND NOT EXISTS (
+    SELECT 1
+    FROM drinks d
+    WHERE d.product_id = p.id
+);
 
 
 INSERT INTO pastas (product_id)

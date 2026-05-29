@@ -1,6 +1,7 @@
 package bg.svetozar.tastypizza.controller;
 
 import bg.svetozar.tastypizza.model.dto.admin.AdminUserDto;
+import bg.svetozar.tastypizza.model.dto.admin.AdminUserPageDto;
 import bg.svetozar.tastypizza.model.dto.admin.UpdateUserRoleRequest;
 import bg.svetozar.tastypizza.service.AdminUserService;
 import jakarta.validation.Valid;
@@ -25,14 +26,15 @@ public class AdminUserController {
 
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public Page<AdminUserDto> list(
+    public AdminUserPageDto list(
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "show", required = false, defaultValue = "active") String visibility,
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "page must be >= 0") int page,
             @RequestParam(defaultValue = "20") @Min(value = 1, message = "size must be >= 1")
             @Max(value = 200, message = "size must be <= 200") int size
     ) {
-        return adminUserService.list(query, visibility, PageRequest.of(page, size, Sort.by("id").descending()));
+        Page<AdminUserDto> users = adminUserService.list(query, visibility, PageRequest.of(page, size, Sort.by("id").descending()));
+        return AdminUserPageDto.from(users);
     }
 
     @PatchMapping("/{id}/role")
