@@ -7,12 +7,11 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
+import java.util.Map;
 
 import static bg.svetozar.tastypizza.exception.ErrorMessage.*;
 
 public record PastaRequest(
-        @NotBlank(message = REQUIRED_NAME)
-        @Size(min = 2, max = 100, message = INVALID_PASTA_NAME_BETWEEN_2_100_CHARS)
         String name,
 
         @Size(max = 1000, message = INVALID_PASTA_DESCRIPTION_MAX_1000_CHARS)
@@ -33,6 +32,10 @@ public record PastaRequest(
 
         @Valid
         @NotNull(message = REQUIRED_ALLOWED_INGREDIENTS)
-        List<@Valid PastaAllowedIngredientRequest> allowedIngredients
+        List<@Valid PastaAllowedIngredientRequest> allowedIngredients,
+
+        Map<String, Map<String, String>> translations,
+
+        Map<String, Map<String, String>> fields
 ) {
 }

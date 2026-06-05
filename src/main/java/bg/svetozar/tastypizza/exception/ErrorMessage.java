@@ -22,7 +22,6 @@ public final class ErrorMessage {
     public static final String PASTA_ALLOWED_INGREDIENT_ALREADY_EXISTS = "Ingredient is already allowed for this pasta";
     public static final String PASTA_SAUCE_ALREADY_EXISTS = "Sauce is already allowed for this pasta";
     public static final String PIZZA_NOT_FOUND = "Pizza not found";
-    public static final String ALLOWED_INGREDIENT_NOT_FOUND = "Allowed Ingredient not found";
     public static final String ALLOWED_INGREDIENT_NOT_FOUND_WITH_ID = "PizzaAllowedIngredient not found: ";
     public static final String PIZZA_NOT_FOUND_WITH_ID = "Pizza not found with id: ";
     public static final String INVALID_ORDER_ID = "Invalid order ID";

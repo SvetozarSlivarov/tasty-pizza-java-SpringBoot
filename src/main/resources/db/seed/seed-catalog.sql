@@ -379,3 +379,158 @@ WHERE NOT EXISTS (
     WHERE pai.pasta_id = p.id
       AND pai.ingredient_id = i.id
 );
+
+
+REPLACE INTO translations (entity_type, entity_id, field_name, language, translated_text, auto_generated, created_at, updated_at)
+SELECT 'PRODUCT',
+       p.id,
+       f.field_name,
+       l.lang,
+       CASE f.field_name
+           WHEN 'name' THEN CASE l.lang WHEN 'bg' THEN x.bg_name WHEN 'de' THEN x.de_name WHEN 'fr' THEN x.fr_name END
+           ELSE CASE l.lang WHEN 'bg' THEN x.bg_description WHEN 'de' THEN x.de_description WHEN 'fr' THEN x.fr_description END
+           END,
+       false,
+       NOW(),
+       NOW()
+FROM (
+         SELECT 'PIZZA' AS type, 'Margherita' AS en_name, 'Маргарита' AS bg_name, 'Margherita' AS de_name, 'Margherita' AS fr_name,
+                'Доматен сос, моцарела, риган.' AS bg_description, 'Tomatensauce, Mozzarella, Oregano.' AS de_description, 'Sauce tomate, mozzarella, origan.' AS fr_description
+         UNION ALL SELECT 'PIZZA', 'Pepperoni', 'Пеперони', 'Peperoni', 'Pepperoni',
+                'Доматен сос, моцарела, пеперони.', 'Tomatensauce, Mozzarella, Peperoni.', 'Sauce tomate, mozzarella, pepperoni.'
+         UNION ALL SELECT 'PIZZA', 'BBQ Chicken', 'Барбекю пиле', 'BBQ-Hähnchen', 'Poulet barbecue',
+                'Барбекю сос, моцарела, пиле, червен лук.', 'BBQ-Sauce, Mozzarella, Hähnchen, rote Zwiebel.', 'Sauce barbecue, mozzarella, poulet, oignon rouge.'
+         UNION ALL SELECT 'PIZZA', 'Hawaiian', 'Хавайска', 'Hawaii', 'Hawaïenne',
+                'Доматен сос, моцарела, шунка, ананас.', 'Tomatensauce, Mozzarella, Schinken, Ananas.', 'Sauce tomate, mozzarella, jambon, ananas.'
+         UNION ALL SELECT 'PIZZA', 'Veggie', 'Вегетарианска', 'Gemüse', 'Végétarienne',
+                'Доматен сос, моцарела, микс от зеленчуци.', 'Tomatensauce, Mozzarella, gemischtes Gemüse.', 'Sauce tomate, mozzarella, légumes variés.'
+         UNION ALL SELECT 'PIZZA', 'Four Cheese', 'Четири сирена', 'Vier Käse', 'Quatre fromages',
+                'Моцарела, чедър, пармезан, синьо сирене.', 'Mozzarella, Cheddar, Parmesan, Blauschimmelkäse.', 'Mozzarella, cheddar, parmesan, fromage bleu.'
+         UNION ALL SELECT 'DRINK', 'Coca-Cola 330ml', 'Кока-Кола 330 мл', 'Coca-Cola 330 ml', 'Coca-Cola 330 ml',
+                'Газирана безалкохолна напитка.', 'Erfrischungsgetränk.', 'Boisson gazeuse.'
+         UNION ALL SELECT 'DRINK', 'Fanta 330ml', 'Фанта 330 мл', 'Fanta 330 ml', 'Fanta 330 ml',
+                'Портокалова безалкохолна напитка.', 'Orangenlimonade.', 'Boisson gazeuse à l''orange.'
+         UNION ALL SELECT 'DRINK', 'Sprite 330ml', 'Спрайт 330 мл', 'Sprite 330 ml', 'Sprite 330 ml',
+                'Лимон-лайм безалкохолна напитка.', 'Zitronen-Limetten-Limonade.', 'Boisson gazeuse citron-lime.'
+         UNION ALL SELECT 'DRINK', 'Water 500ml', 'Вода 500 мл', 'Wasser 500 ml', 'Eau 500 ml',
+                'Негазирана вода.', 'Stilles Wasser.', 'Eau plate.'
+         UNION ALL SELECT 'DRINK', 'Iced Tea Lemon 500ml', 'Студен чай лимон 500 мл', 'Eistee Zitrone 500 ml', 'Thé glacé citron 500 ml',
+                'Студен чай с лимон.', 'Eistee mit Zitrone.', 'Thé glacé au citron.'
+         UNION ALL SELECT 'DRINK', 'Orange Juice 330ml', 'Портокалов сок 330 мл', 'Orangensaft 330 ml', 'Jus d''orange 330 ml',
+                'Портокалов сок.', 'Orangensaft.', 'Jus d''orange.'
+         UNION ALL SELECT 'PASTA', 'Spaghetti', 'Спагети', 'Spaghetti', 'Spaghettis',
+                'Класическа италианска паста спагети.', 'Klassische italienische Spaghetti.', 'Pâtes spaghetti italiennes classiques.'
+         UNION ALL SELECT 'PASTA', 'Tagliatelle', 'Талиатели', 'Tagliatelle', 'Tagliatelles',
+                'Плоска лентовидна паста.', 'Flache Bandnudeln.', 'Pâtes plates en rubans.'
+         UNION ALL SELECT 'PASTA', 'Penne', 'Пене', 'Penne', 'Penne',
+                'Паста с форма на тръбички.', 'Röhrenförmige Pasta.', 'Pâtes en forme de tubes.'
+         UNION ALL SELECT 'PASTA', 'Fusilli', 'Фузили', 'Fusilli', 'Fusilli',
+                'Спираловидна паста.', 'Spiralförmige Pasta.', 'Pâtes en spirale.'
+         UNION ALL SELECT 'PASTA', 'Rigatoni', 'Ригатони', 'Rigatoni', 'Rigatoni',
+                'Голяма паста с форма на тръбички.', 'Große röhrenförmige Pasta.', 'Grosses pâtes en forme de tubes.'
+     ) x
+         JOIN products p ON p.type = x.type AND p.name = x.en_name
+         CROSS JOIN (
+    SELECT 'name' AS field_name
+    UNION ALL SELECT 'description'
+) f
+         CROSS JOIN (
+    SELECT 'bg' AS lang
+    UNION ALL SELECT 'de'
+    UNION ALL SELECT 'fr'
+) l;
+
+REPLACE INTO translations (entity_type, entity_id, field_name, language, translated_text, auto_generated, created_at, updated_at)
+SELECT 'INGREDIENT',
+       i.id,
+       'name',
+       l.lang,
+       CASE l.lang WHEN 'bg' THEN x.bg_name WHEN 'de' THEN x.de_name WHEN 'fr' THEN x.fr_name END,
+       false,
+       NOW(),
+       NOW()
+FROM (
+         SELECT 'Mozzarella' AS en_name, 'Моцарела' AS bg_name, 'Mozzarella' AS de_name, 'Mozzarella' AS fr_name
+         UNION ALL SELECT 'Parmesan', 'Пармезан', 'Parmesan', 'Parmesan'
+         UNION ALL SELECT 'Cheddar', 'Чедър', 'Cheddar', 'Cheddar'
+         UNION ALL SELECT 'Gouda', 'Гауда', 'Gouda', 'Gouda'
+         UNION ALL SELECT 'Blue Cheese', 'Синьо сирене', 'Blauschimmelkäse', 'Fromage bleu'
+         UNION ALL SELECT 'Provolone', 'Проволоне', 'Provolone', 'Provolone'
+         UNION ALL SELECT 'Ricotta', 'Рикота', 'Ricotta', 'Ricotta'
+         UNION ALL SELECT 'Feta', 'Фета', 'Feta', 'Feta'
+         UNION ALL SELECT 'Emmental', 'Ементал', 'Emmentaler', 'Emmental'
+         UNION ALL SELECT 'Goat Cheese', 'Козе сирене', 'Ziegenkäse', 'Fromage de chèvre'
+         UNION ALL SELECT 'Pepperoni', 'Пеперони', 'Peperoni', 'Pepperoni'
+         UNION ALL SELECT 'Ham', 'Шунка', 'Schinken', 'Jambon'
+         UNION ALL SELECT 'Bacon', 'Бекон', 'Speck', 'Bacon'
+         UNION ALL SELECT 'Chicken', 'Пиле', 'Hähnchen', 'Poulet'
+         UNION ALL SELECT 'Beef', 'Говеждо', 'Rindfleisch', 'Bœuf'
+         UNION ALL SELECT 'Sausage', 'Наденица', 'Wurst', 'Saucisse'
+         UNION ALL SELECT 'Salami', 'Салам', 'Salami', 'Salami'
+         UNION ALL SELECT 'Prosciutto', 'Прошуто', 'Prosciutto', 'Prosciutto'
+         UNION ALL SELECT 'Chorizo', 'Чоризо', 'Chorizo', 'Chorizo'
+         UNION ALL SELECT 'Turkey', 'Пуйка', 'Pute', 'Dinde'
+         UNION ALL SELECT 'Pancetta', 'Панчета', 'Pancetta', 'Pancetta'
+         UNION ALL SELECT 'Meatballs', 'Кюфтенца', 'Fleischbällchen', 'Boulettes de viande'
+         UNION ALL SELECT 'Tomato Sauce', 'Доматен сос', 'Tomatensauce', 'Sauce tomate'
+         UNION ALL SELECT 'Spicy Tomato Sauce', 'Пикантен доматен сос', 'Scharfe Tomatensauce', 'Sauce tomate épicée'
+         UNION ALL SELECT 'BBQ Sauce', 'Барбекю сос', 'BBQ-Sauce', 'Sauce barbecue'
+         UNION ALL SELECT 'Pesto Sauce', 'Песто сос', 'Pestosauce', 'Sauce pesto'
+         UNION ALL SELECT 'Garlic Sauce', 'Чеснов сос', 'Knoblauchsauce', 'Sauce à l''ail'
+         UNION ALL SELECT 'Cream Sauce', 'Сметанов сос', 'Sahnesauce', 'Sauce à la crème'
+         UNION ALL SELECT 'Olive Oil', 'Зехтин', 'Olivenöl', 'Huile d''olive'
+         UNION ALL SELECT 'Chili Sauce', 'Чили сос', 'Chilisauce', 'Sauce chili'
+         UNION ALL SELECT 'Ranch Sauce', 'Ранч сос', 'Ranch-Sauce', 'Sauce ranch'
+         UNION ALL SELECT 'Mushrooms', 'Гъби', 'Pilze', 'Champignons'
+         UNION ALL SELECT 'Onion', 'Лук', 'Zwiebel', 'Oignon'
+         UNION ALL SELECT 'Red Onion', 'Червен лук', 'Rote Zwiebel', 'Oignon rouge'
+         UNION ALL SELECT 'Green Peppers', 'Зелени чушки', 'Grüne Paprika', 'Poivrons verts'
+         UNION ALL SELECT 'Roasted Peppers', 'Печени чушки', 'Geröstete Paprika', 'Poivrons rôtis'
+         UNION ALL SELECT 'Jalapeno', 'Халапеньо', 'Jalapeño', 'Jalapeño'
+         UNION ALL SELECT 'Black Olives', 'Черни маслини', 'Schwarze Oliven', 'Olives noires'
+         UNION ALL SELECT 'Green Olives', 'Зелени маслини', 'Grüne Oliven', 'Olives vertes'
+         UNION ALL SELECT 'Tomatoes', 'Домати', 'Tomaten', 'Tomates'
+         UNION ALL SELECT 'Cherry Tomatoes', 'Чери домати', 'Kirschtomaten', 'Tomates cerises'
+         UNION ALL SELECT 'Spinach', 'Спанак', 'Spinat', 'Épinards'
+         UNION ALL SELECT 'Corn', 'Царевица', 'Mais', 'Maïs'
+         UNION ALL SELECT 'Pineapple', 'Ананас', 'Ananas', 'Ananas'
+         UNION ALL SELECT 'Arugula', 'Рукола', 'Rucola', 'Roquette'
+         UNION ALL SELECT 'Tuna', 'Риба тон', 'Thunfisch', 'Thon'
+         UNION ALL SELECT 'Shrimp', 'Скариди', 'Garnelen', 'Crevettes'
+         UNION ALL SELECT 'Oregano', 'Риган', 'Oregano', 'Origan'
+         UNION ALL SELECT 'Basil', 'Босилек', 'Basilikum', 'Basilic'
+         UNION ALL SELECT 'Chili Flakes', 'Чили люспи', 'Chiliflocken', 'Flocons de piment'
+         UNION ALL SELECT 'Black Pepper', 'Черен пипер', 'Schwarzer Pfeffer', 'Poivre noir'
+         UNION ALL SELECT 'Garlic', 'Чесън', 'Knoblauch', 'Ail'
+         UNION ALL SELECT 'Parsley', 'Магданоз', 'Petersilie', 'Persil'
+     ) x
+         JOIN ingredients i ON i.name = x.en_name
+         CROSS JOIN (
+    SELECT 'bg' AS lang
+    UNION ALL SELECT 'de'
+    UNION ALL SELECT 'fr'
+) l;
+
+REPLACE INTO translations (entity_type, entity_id, field_name, language, translated_text, auto_generated, created_at, updated_at)
+SELECT 'INGREDIENT_TYPE',
+       it.id,
+       'name',
+       l.lang,
+       CASE l.lang WHEN 'bg' THEN x.bg_name WHEN 'de' THEN x.de_name WHEN 'fr' THEN x.fr_name END,
+       false,
+       NOW(),
+       NOW()
+FROM (
+         SELECT 'Cheese' AS en_name, 'Сирена' AS bg_name, 'Käse' AS de_name, 'Fromages' AS fr_name
+         UNION ALL SELECT 'Meat', 'Месо', 'Fleisch', 'Viandes'
+         UNION ALL SELECT 'Sauce', 'Сосове', 'Saucen', 'Sauces'
+         UNION ALL SELECT 'Veggies', 'Зеленчуци', 'Gemüse', 'Légumes'
+         UNION ALL SELECT 'Seafood', 'Морски дарове', 'Meeresfrüchte', 'Fruits de mer'
+         UNION ALL SELECT 'HerbsSpices', 'Билки и подправки', 'Kräuter und Gewürze', 'Herbes et épices'
+     ) x
+         JOIN ingredient_types it ON it.name = x.en_name
+         CROSS JOIN (
+    SELECT 'bg' AS lang
+    UNION ALL SELECT 'de'
+    UNION ALL SELECT 'fr'
+) l;

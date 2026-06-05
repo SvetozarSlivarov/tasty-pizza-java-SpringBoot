@@ -8,9 +8,13 @@ import org.springframework.stereotype.Component;
 public class IngredientTypeMapper {
 
     public IngredientTypeDto toResponse(IngredientType entity) {
+        return toResponse(entity, entity.getName());
+    }
+
+    public IngredientTypeDto toResponse(IngredientType entity, String name) {
         return new IngredientTypeDto(
                 entity.getId(),
-                entity.getName()
+                name
         );
     }
 }

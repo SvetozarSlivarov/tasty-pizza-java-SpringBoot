@@ -72,14 +72,15 @@ public class CartService {
     private final PastaRepository pastaRepository;
     private final PastaSauceRepository pastaSauceRepository;
     private final PastaAllowedIngredientRepository pastaAllowedIngredientRepository;
+    private final LocalizedTextService localizedTextService;
 
-    public CartDto getCurrentCart(String guestToken) {
+    public CartDto getCurrentCart(String guestToken, String lang) {
         User user = getCurrentUserOrNull();
         Order order = (user != null)
                 ? mergeGuestCartIntoUserCart(user, guestToken)
                 : getOrCreateGuestCart(guestToken);
 
-        return OrderMapper.toCartDto(order);
+        return toCartDto(order, lang);
     }
 
     public Order getCurrentCartEntity(String guestToken, User user) {
@@ -87,7 +88,11 @@ public class CartService {
         return getOrCreateGuestCart(guestToken);
     }
 
-    public CartDto addDrinkToCart(String guestToken, Long drinkProductId, int quantity, String note) {
+    private CartDto toCartDto(Order order, String lang) {
+        return OrderMapper.toCartDto(order, localizedTextService, lang);
+    }
+
+    public CartDto addDrinkToCart(String guestToken, Long drinkProductId, int quantity, String note, String lang) {
         requirePositiveQty(quantity);
 
         Order order = resolveCurrentCart(guestToken);
@@ -95,7 +100,7 @@ public class CartService {
         Product product = requireActiveProductOfType(drinkProductId, ProductType.DRINK);
         createAndSaveDrinkItem(order, product, quantity, note);
 
-        return OrderMapper.toCartDto(order);
+        return toCartDto(order, lang);
     }
 
     public CartDto addPizzaToCart(String guestToken,
@@ -104,7 +109,8 @@ public class CartService {
                                   int quantity,
                                   String note,
                                   List<Long> removeIngredientIds,
-                                  List<Long> addIngredientIds) {
+                                  List<Long> addIngredientIds,
+                                  String lang) {
         requirePositiveQty(quantity);
         requireId(variantId, "variantId", ErrorCode.VARIANT_REQUIRED, REQUIRED_VARIANTS);
 
@@ -121,7 +127,7 @@ public class CartService {
 
         attachItemToOrderAndTouch(order, item);
 
-        return OrderMapper.toCartDto(order);
+        return toCartDto(order, lang);
     }
 
     public CartDto addPastaToCart(String guestToken,
@@ -129,7 +135,8 @@ public class CartService {
                                   Long pastaSauceId,
                                   int quantity,
                                   String note,
-                                  List<Long> addIngredientIds) {
+                                  List<Long> addIngredientIds,
+                                  String lang) {
         requirePositiveQty(quantity);
         requireId(pastaSauceId, "pastaSauceId", ErrorCode.PASTA_SAUCE_REQUIRED, REQUIRED_PASTA_SAUCE_ID);
 
@@ -146,10 +153,10 @@ public class CartService {
 
         attachItemToOrderAndTouch(order, item);
 
-        return OrderMapper.toCartDto(order);
+        return toCartDto(order, lang);
     }
 
-    public CartDto patchCartItem(String guestToken, Long orderItemId, UpdateCartItemRequest request) {
+    public CartDto patchCartItem(String guestToken, Long orderItemId, UpdateCartItemRequest request, String lang) {
         User user = getCurrentUserOrNull();
 
         OrderItem item = requireOrderItem(orderItemId);
@@ -181,10 +188,10 @@ public class CartService {
             order.setUpdatedAt(LocalDateTime.now());
         }
 
-        return OrderMapper.toCartDto(order);
+        return toCartDto(order, lang);
     }
 
-    public CartDto removeItem(String guestToken, Long orderItemId) {
+    public CartDto removeItem(String guestToken, Long orderItemId, String lang) {
         User user = getCurrentUserOrNull();
         OrderItem item = requireOrderItem(orderItemId);
 
@@ -196,10 +203,10 @@ public class CartService {
 
         order.setUpdatedAt(LocalDateTime.now());
 
-        return OrderMapper.toCartDto(order);
+        return toCartDto(order, lang);
     }
 
-    public CartDto checkout(String guestToken, String phone, String address) {
+    public CartDto checkout(String guestToken, String phone, String address, String lang) {
         Order cart = resolveCurrentCartForCheckout(guestToken);
 
         requireCartStatusCart(cart);
@@ -208,7 +215,7 @@ public class CartService {
 
         applyCheckout(cart, phone, address);
 
-        return OrderMapper.toCartDto(cart);
+        return toCartDto(cart, lang);
     }
 
     public CartDto addDrinkToExistingCart(Order order, Long drinkProductId, int quantity, String note) {
@@ -494,8 +501,8 @@ public class CartService {
     }
 
     private void applyCustomizationChange(OrderItem item,
-                                          List<Long> removeIngredientIds,
-                                          List<Long> addIngredientIds) {
+                                  List<Long> removeIngredientIds,
+                                  List<Long> addIngredientIds) {
         if (item.getProduct().getType() == ProductType.PASTA) {
             if (removeIngredientIds != null && !removeIngredientIds.isEmpty()) {
                 throw new BadRequestException(

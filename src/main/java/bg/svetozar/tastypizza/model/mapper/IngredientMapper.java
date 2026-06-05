@@ -15,9 +15,15 @@ public class IngredientMapper {
     public IngredientDto toResponse(Ingredient ingredient) {
         if (ingredient == null) return null;
 
+        return toResponse(ingredient, ingredient.getName());
+    }
+
+    public IngredientDto toResponse(Ingredient ingredient, String name) {
+        if (ingredient == null) return null;
+
         return new IngredientDto(
                 ingredient.getId(),
-                ingredient.getName(),
+                name,
                 ingredient.isDeleted(),
                 ingredient.getDeletedAt()
         );
@@ -32,19 +38,26 @@ public class IngredientMapper {
     public IngredientWithTypeDto toWithTypeResponse(Ingredient ingredient) {
         if (ingredient == null) return null;
 
+        String typeName = ingredient.getType() != null ? ingredient.getType().getName() : null;
+        return toWithTypeResponse(ingredient, ingredient.getName(), typeName);
+    }
+
+    public IngredientWithTypeDto toWithTypeResponse(Ingredient ingredient, String name, String typeName) {
+        if (ingredient == null) return null;
+
         IngredientType type = ingredient.getType();
         IngredientTypeDto typeResponse = null;
 
         if (type != null) {
             typeResponse = new IngredientTypeDto(
                     type.getId(),
-                    type.getName()
+                    typeName
             );
         }
 
         return new IngredientWithTypeDto(
                 ingredient.getId(),
-                ingredient.getName(),
+                name,
                 typeResponse,
                 ingredient.isDeleted(),
                 ingredient.getDeletedAt()

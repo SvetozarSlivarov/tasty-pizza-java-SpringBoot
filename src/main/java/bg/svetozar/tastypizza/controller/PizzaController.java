@@ -24,9 +24,10 @@ public class PizzaController {
 
     @GetMapping
     public List<PizzaDto> getAll(
-            @RequestParam(name = "withVariants", defaultValue = "false") boolean withVariants
+            @RequestParam(name = "withVariants", defaultValue = "false") boolean withVariants,
+            @RequestParam(name = "lang", required = false) String lang
     ) {
-        return pizzaService.getAll(withVariants);
+        return pizzaService.getAll(withVariants, lang);
     }
 
     @GetMapping("/deleted")
@@ -41,9 +42,10 @@ public class PizzaController {
 
     @GetMapping("/{id}")
     public PizzaDto getById(
-            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id,
+            @RequestParam(name = "lang", required = false) String lang
     ) {
-        return pizzaService.getById(id);
+        return pizzaService.getById(id, lang);
     }
 
     @PostMapping

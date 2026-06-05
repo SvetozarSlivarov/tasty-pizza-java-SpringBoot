@@ -42,6 +42,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final OrderStatusChangeRepository statusChangeRepository;
     private final CartService cartService;
+    private final LocalizedTextService localizedTextService;
 
     private User getCurrentUserOrThrow() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -90,11 +91,11 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<CartDto> getMyOrders() {
+    public List<CartDto> getMyOrders(String lang) {
         User user = getCurrentUserOrThrow();
         return orderRepository.findMyOrdersWithItems(user)
                 .stream()
-                .map(OrderMapper::toCartDto)
+                .map(order -> OrderMapper.toCartDto(order, localizedTextService, lang))
                 .toList();
     }
 
@@ -114,7 +115,7 @@ public class OrderService {
     }
 
     @Transactional
-    public ReorderResultDto reorderIntoCart(Long sourceOrderId, String guestToken) {
+    public ReorderResultDto reorderIntoCart(Long sourceOrderId, String guestToken, String lang) {
         User user = getCurrentUserOrThrow();
 
         Order source = requireOrder(sourceOrderId);
@@ -133,7 +134,7 @@ public class OrderService {
         List<String> messages = new ArrayList<>();
 
         Order cartOrder = cartService.getCurrentCartEntity(guestToken, user);
-        CartDto cart = OrderMapper.toCartDto(cartOrder);
+        CartDto cart = OrderMapper.toCartDto(cartOrder, localizedTextService, lang);
 
         for (OrderItem item : source.getItems()) {
             try {
@@ -233,6 +234,6 @@ public class OrderService {
             }
         }
 
-        return new ReorderResultDto(cart, added, skipped, messages);
+        return new ReorderResultDto(OrderMapper.toCartDto(cartOrder, localizedTextService, lang), added, skipped, messages);
     }
 }

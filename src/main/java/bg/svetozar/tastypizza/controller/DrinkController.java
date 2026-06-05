@@ -22,8 +22,8 @@ public class DrinkController {
     private final DrinkService drinkService;
 
     @GetMapping
-    public List<DrinkDto> getAll() {
-        return drinkService.getAll();
+    public List<DrinkDto> getAll(@RequestParam(name = "lang", required = false) String lang) {
+        return drinkService.getAll(lang);
     }
 
     @GetMapping("/deleted")
@@ -33,8 +33,11 @@ public class DrinkController {
     }
 
     @GetMapping("/{id}")
-    public DrinkDto getById(@PathVariable @Positive Long id) {
-        return drinkService.getById(id);
+    public DrinkDto getById(
+            @PathVariable @Positive Long id,
+            @RequestParam(name = "lang", required = false) String lang
+    ) {
+        return drinkService.getById(id, lang);
     }
 
     @PostMapping

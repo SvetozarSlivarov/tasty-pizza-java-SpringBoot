@@ -45,6 +45,7 @@ public class AdminOrderService {
     private final OrderRepository orderRepository;
     private final OrderStatusChangeRepository statusChangeRepository;
     private final OrderItemRepository orderItemRepository;
+    private final LocalizedTextService localizedTextService;
 
     @Transactional(readOnly = true)
     public Page<AdminOrderListDto> list(String statusStr, String query, Long userId, Pageable pageable) {
@@ -63,7 +64,7 @@ public class AdminOrderService {
     }
 
     @Transactional(readOnly = true)
-    public AdminOrderDetailDto getDetail(Long id) {
+    public AdminOrderDetailDto getDetail(Long id, String lang) {
         requireOrderId(id);
 
         Order order = orderRepository.findAdminDetailById(id)
@@ -76,7 +77,7 @@ public class AdminOrderService {
         orderItemRepository.fetchCustomizationsForOrder(order.getId());
 
         List<AdminOrderItemDto> items = order.getItems().stream()
-                .map(this::mapItem)
+                .map(orderItem -> mapItem(orderItem, lang))
                 .toList();
 
         BigDecimal total = items.stream()
@@ -150,7 +151,7 @@ public class AdminOrderService {
         return new AdminOrderStatusUpdateDto(order.getId(), order.getStatus(), order.getUpdatedAt());
     }
 
-    private AdminOrderItemDto mapItem(OrderItem orderItem) {
+    private AdminOrderItemDto mapItem(OrderItem orderItem, String lang) {
         List<AdminOrderItemCustomizationDto> customizations =
                 (orderItem.getCustomizations() == null
                         ? List.<OrderItemCustomization>of()
@@ -160,7 +161,14 @@ public class AdminOrderService {
                                 orderItemCustomization.getId() == null ? Long.MAX_VALUE : orderItemCustomization.getId()))
                         .map(orderItemCustomization -> new AdminOrderItemCustomizationDto(
                                 orderItemCustomization.getAction() != null ? orderItemCustomization.getAction().name() : null,
-                                orderItemCustomization.getIngredient() != null ? orderItemCustomization.getIngredient().getName() : null
+                                orderItemCustomization.getIngredient() != null
+                                        ? localizedTextService.getTranslationOrDefault(
+                                        "INGREDIENT",
+                                        orderItemCustomization.getIngredient().getId(),
+                                        "name",
+                                        lang,
+                                        orderItemCustomization.getIngredient().getName())
+                                        : null
                         ))
                         .toList();
 
@@ -177,7 +185,13 @@ public class AdminOrderService {
         String imageUrl = null;
 
         if (orderItem.getProduct() != null) {
-            name = orderItem.getProduct().getName();
+            name = localizedTextService.getTranslationOrDefault(
+                    "PRODUCT",
+                    orderItem.getProduct().getId(),
+                    "name",
+                    lang,
+                    orderItem.getProduct().getName()
+            );
             type = orderItem.getProduct().getType();
             imageUrl = orderItem.getProduct().getImageUrl();
         }
@@ -189,7 +203,12 @@ public class AdminOrderService {
 
         if (variantLabel == null && orderItem.getPastaSauce() != null) {
             String sauceName = orderItem.getPastaSauce().getIngredient() != null
-                    ? orderItem.getPastaSauce().getIngredient().getName()
+                    ? localizedTextService.getTranslationOrDefault(
+                    "INGREDIENT",
+                    orderItem.getPastaSauce().getIngredient().getId(),
+                    "name",
+                    lang,
+                    orderItem.getPastaSauce().getIngredient().getName())
                     : "Sauce";
             String spicyLevel = orderItem.getPastaSauce().getSpicyLevel() != null
                     ? " " + orderItem.getPastaSauce().getSpicyLevel().name()

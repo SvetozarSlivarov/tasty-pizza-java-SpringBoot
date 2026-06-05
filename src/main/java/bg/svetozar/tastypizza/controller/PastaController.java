@@ -24,9 +24,10 @@ public class PastaController {
 
     @GetMapping
     public List<PastaDto> getAll(
-            @RequestParam(name = "withDetails", defaultValue = "false") boolean withDetails
+            @RequestParam(name = "withDetails", defaultValue = "false") boolean withDetails,
+            @RequestParam(name = "lang", required = false) String lang
     ) {
-        return pastaService.getAll(withDetails);
+        return pastaService.getAll(withDetails, lang);
     }
 
     @GetMapping("/deleted")
@@ -39,9 +40,10 @@ public class PastaController {
 
     @GetMapping("/{id}")
     public PastaDto getById(
-            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id,
+            @RequestParam(name = "lang", required = false) String lang
     ) {
-        return pastaService.getById(id);
+        return pastaService.getById(id, lang);
     }
 
     @PostMapping

@@ -34,8 +34,11 @@ public class AdminOrderController {
     }
 
     @GetMapping("/{id}")
-    public AdminOrderDetailDto detail(@PathVariable Long id) {
-        return adminOrderService.getDetail(id);
+    public AdminOrderDetailDto detail(
+            @PathVariable Long id,
+            @RequestParam(value = "lang", required = false) String lang
+    ) {
+        return adminOrderService.getDetail(id, lang);
     }
 }
 

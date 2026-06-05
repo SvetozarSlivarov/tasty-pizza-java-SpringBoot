@@ -1,6 +1,7 @@
 package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.*;
+import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeRequest;
 import bg.svetozar.tastypizza.model.entity.IngredientType;
 import bg.svetozar.tastypizza.repository.IngredientRepository;
 import bg.svetozar.tastypizza.repository.IngredientTypeRepository;
@@ -15,6 +16,8 @@ import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_TYPE_ALRE
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_TYPE_IN_USE;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_TYPE_NAME_CANNOT_BE_EMPTY;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_TYPE_NOT_FOUND;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_TYPE_NAME_BETWEEN_2_50_CHARS;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_NAME;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class IngredientTypeService {
 
     private final IngredientTypeRepository ingredientTypeRepository;
     private final IngredientRepository ingredientRepository;
+    private final LocalizedTextService localizedTextService;
 
     public List<IngredientType> findAll() {
         return ingredientTypeRepository.findAll();
@@ -38,6 +42,17 @@ public class IngredientTypeService {
     }
 
     public IngredientType create(String name) {
+        return create(name, null, null);
+    }
+
+    public IngredientType create(IngredientTypeRequest request) {
+        String englishName = localizedTextService.resolveEnglishField(
+                request.translations(), request.fields(), "name", request.name()
+        );
+        return create(englishName, request.translations(), request.fields());
+    }
+
+    private IngredientType create(String name, java.util.Map<String, java.util.Map<String, String>> translations, java.util.Map<String, java.util.Map<String, String>> fields) {
         String normalizedName = normalizeName(name);
 
         if (ingredientTypeRepository.existsByNameIgnoreCase(normalizedName)) {
@@ -52,10 +67,29 @@ public class IngredientTypeService {
                 .name(normalizedName)
                 .build();
 
-        return ingredientTypeRepository.save(ingredientType);
+        IngredientType saved = ingredientTypeRepository.save(ingredientType);
+        localizedTextService.saveTranslations(
+                "INGREDIENT_TYPE",
+                saved.getId(),
+                translations,
+                fields,
+                java.util.Map.of("name", normalizedName)
+        );
+        return saved;
     }
 
     public IngredientType update(Long id, String name) {
+        return update(id, name, null, null);
+    }
+
+    public IngredientType update(Long id, IngredientTypeRequest request) {
+        String englishName = localizedTextService.resolveEnglishField(
+                request.translations(), request.fields(), "name", request.name()
+        );
+        return update(id, englishName, request.translations(), request.fields());
+    }
+
+    private IngredientType update(Long id, String name, java.util.Map<String, java.util.Map<String, String>> translations, java.util.Map<String, java.util.Map<String, String>> fields) {
         IngredientType ingredientType = findById(id);
         String normalizedName = normalizeName(name);
 
@@ -72,7 +106,15 @@ public class IngredientTypeService {
         }
 
         ingredientType.setName(normalizedName);
-        return ingredientTypeRepository.save(ingredientType);
+        IngredientType saved = ingredientTypeRepository.save(ingredientType);
+        localizedTextService.saveTranslations(
+                "INGREDIENT_TYPE",
+                saved.getId(),
+                translations,
+                fields,
+                java.util.Map.of("name", normalizedName)
+        );
+        return saved;
     }
 
     public void deleteById(Long id) {
@@ -105,10 +147,19 @@ public class IngredientTypeService {
     private String normalizeName(String name) {
         if (!StringUtils.hasText(name)) {
             throw new BadRequestException(
-                    INGREDIENT_TYPE_NAME_CANNOT_BE_EMPTY,
-                    ErrorCode.BAD_REQUEST
+                    REQUIRED_NAME,
+                    ErrorCode.BAD_REQUEST,
+                    ErrorContext.of("field", "translations.name.en")
             );
         }
-        return name.trim().toUpperCase();
+        String normalized = name.trim().toUpperCase();
+        if (normalized.length() < 2 || normalized.length() > 50) {
+            throw new BadRequestException(
+                    INVALID_TYPE_NAME_BETWEEN_2_50_CHARS,
+                    ErrorCode.BAD_REQUEST,
+                    ErrorContext.of("field", "translations.name.en")
+            );
+        }
+        return normalized;
     }
 }

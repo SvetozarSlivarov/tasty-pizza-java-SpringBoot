@@ -20,11 +20,24 @@ public final class PizzaMapper {
         return map(pizza, true);
     }
 
+    public static PizzaDto toPizzaDto(Pizza pizza, String name, String description) {
+        return map(pizza, true, name, description);
+    }
+
     public static PizzaDto toPizzaDtoWithoutFullData(Pizza pizza) {
         return map(pizza, false);
     }
 
+    public static PizzaDto toPizzaDtoWithoutFullData(Pizza pizza, String name, String description) {
+        return map(pizza, false, name, description);
+    }
+
     private static PizzaDto map(Pizza pizza, boolean includeDetails) {
+        var product = pizza.getProduct();
+        return map(pizza, includeDetails, product.getName(), product.getDescription());
+    }
+
+    private static PizzaDto map(Pizza pizza, boolean includeDetails, String name, String description) {
         var product = pizza.getProduct();
 
         List<PizzaVariantDto> variantDtos =
@@ -50,8 +63,8 @@ public final class PizzaMapper {
 
         return new PizzaDto(
                 pizza.getId(),
-                product.getName(),
-                product.getDescription(),
+                name,
+                description,
                 product.getBasePrice().toString(),
                 product.getType().toString(),
                 product.isDeleted(),

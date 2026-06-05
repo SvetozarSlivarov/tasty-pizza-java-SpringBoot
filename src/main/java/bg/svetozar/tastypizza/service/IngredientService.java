@@ -1,6 +1,8 @@
 package bg.svetozar.tastypizza.service;
 
 import bg.svetozar.tastypizza.exception.ErrorCode;
+import bg.svetozar.tastypizza.exception.BadRequestException;
+import bg.svetozar.tastypizza.exception.ErrorContext;
 import bg.svetozar.tastypizza.exception.NotFoundException;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientDto;
 import bg.svetozar.tastypizza.model.dto.ingredient.IngredientRequest;
@@ -22,6 +24,8 @@ import java.util.List;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_NOT_FOUND;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_NOT_FOUND_OR_DELETE;
 import static bg.svetozar.tastypizza.exception.ErrorMessage.INGREDIENT_TYPE_NOT_FOUND;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.INVALID_INGREDIENT_NAME_BETWEEN_2_100_CHARS;
+import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_NAME;
 
 @Service
 @Transactional
@@ -33,45 +37,99 @@ public class IngredientService {
     private final IngredientRepository ingredientRepository;
     private final IngredientTypeRepository ingredientTypeRepository;
     private final IngredientMapper ingredientMapper;
+    private final LocalizedTextService localizedTextService;
 
     public List<IngredientDto> findAllBasic(String show) {
-        return ingredientMapper.toResponseList(resolveIngredients(show, false));
+        return findAllBasic(show, null);
+    }
+
+    public List<IngredientDto> findAllBasic(String show, String lang) {
+        return resolveIngredients(show, false).stream()
+                .map(ingredient -> ingredientMapper.toResponse(
+                        ingredient,
+                        localizedTextService.getTranslationOrDefault("INGREDIENT", ingredient.getId(), "name", lang, ingredient.getName())
+                ))
+                .toList();
     }
 
     public List<IngredientWithTypeDto> findAllWithType(String show) {
-        return ingredientMapper.toWithTypeResponseList(resolveIngredients(show, true));
+        return findAllWithType(show, null);
+    }
+
+    public List<IngredientWithTypeDto> findAllWithType(String show, String lang) {
+        return resolveIngredients(show, true).stream()
+                .map(ingredient -> {
+                    IngredientType type = ingredient.getType();
+                    String name = localizedTextService.getTranslationOrDefault("INGREDIENT", ingredient.getId(), "name", lang, ingredient.getName());
+                    String typeName = type == null
+                            ? null
+                            : localizedTextService.getTranslationOrDefault("INGREDIENT_TYPE", type.getId(), "name", lang, type.getName());
+                    return ingredientMapper.toWithTypeResponse(ingredient, name, typeName);
+                })
+                .toList();
     }
 
     public IngredientWithTypeDto findOne(Long id) {
+        return findOne(id, null);
+    }
+
+    public IngredientWithTypeDto findOne(Long id, String lang) {
         Ingredient ingredient = isAdmin()
                 ? ingredientRepository.findByIdWithType(id).orElseThrow(() ->
                 new NotFoundException(INGREDIENT_NOT_FOUND + id, ErrorCode.INGREDIENT_NOT_FOUND))
                 : ingredientRepository.findByIdAndDeletedFalseWithType(id).orElseThrow(() ->
                 new NotFoundException(INGREDIENT_NOT_FOUND_OR_DELETE + id, ErrorCode.INGREDIENT_NOT_FOUND));
 
-        return ingredientMapper.toWithTypeResponse(ingredient);
+        IngredientType type = ingredient.getType();
+        String name = localizedTextService.getTranslationOrDefault("INGREDIENT", ingredient.getId(), "name", lang, ingredient.getName());
+        String typeName = type == null
+                ? null
+                : localizedTextService.getTranslationOrDefault("INGREDIENT_TYPE", type.getId(), "name", lang, type.getName());
+        return ingredientMapper.toWithTypeResponse(ingredient, name, typeName);
     }
 
     public IngredientWithTypeDto create(IngredientRequest dto) {
         IngredientType type = requireIngredientType(dto.typeId());
+        String englishName = localizedTextService.resolveEnglishField(
+                dto.translations(), dto.fields(), "name", dto.name()
+        );
+        validateEnglishName(englishName);
 
         Ingredient ingredient = Ingredient.builder()
-                .name(dto.name())
+                .name(englishName)
                 .type(type)
                 .deleted(false)
                 .deletedAt(null)
                 .build();
 
         ingredient = ingredientRepository.save(ingredient);
+        localizedTextService.saveTranslations(
+                "INGREDIENT",
+                ingredient.getId(),
+                dto.translations(),
+                dto.fields(),
+                java.util.Map.of("name", englishName)
+        );
         return ingredientMapper.toWithTypeResponse(ingredient);
     }
 
     public IngredientWithTypeDto update(Long id, IngredientRequest dto) {
         Ingredient ingredient = requireIngredient(id);
         IngredientType type = requireIngredientType(dto.typeId());
+        String englishName = localizedTextService.resolveEnglishField(
+                dto.translations(), dto.fields(), "name", dto.name()
+        );
+        validateEnglishName(englishName);
 
-        ingredient.setName(dto.name());
+        ingredient.setName(englishName);
         ingredient.setType(type);
+        localizedTextService.saveTranslations(
+                "INGREDIENT",
+                ingredient.getId(),
+                dto.translations(),
+                dto.fields(),
+                java.util.Map.of("name", englishName)
+        );
 
         return ingredientMapper.toWithTypeResponse(ingredient);
     }
@@ -143,5 +201,14 @@ public class IngredientService {
         }
         return auth.getAuthorities().stream()
                 .anyMatch(a -> ROLE_ADMIN.equals(a.getAuthority()));
+    }
+
+    private void validateEnglishName(String englishName) {
+        if (!org.springframework.util.StringUtils.hasText(englishName)) {
+            throw new BadRequestException(REQUIRED_NAME, ErrorCode.BAD_REQUEST, ErrorContext.of("field", "translations.name.en"));
+        }
+        if (englishName.length() < 2 || englishName.length() > 100) {
+            throw new BadRequestException(INVALID_INGREDIENT_NAME_BETWEEN_2_100_CHARS, ErrorCode.BAD_REQUEST, ErrorContext.of("field", "translations.name.en"));
+        }
     }
 }

@@ -51,15 +51,18 @@ public class OrderController {
     public ResponseEntity<ReorderResultDto> reorder(
             @PathVariable @Min(value = 1, message = INVALID_ID_POSITIVE) Long id,
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
+            @RequestParam(value = "lang", required = false) String lang,
             HttpServletResponse response
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
-        return ResponseEntity.ok(orderService.reorderIntoCart(id, guestToken));
+        return ResponseEntity.ok(orderService.reorderIntoCart(id, guestToken, lang));
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<CartDto>> getMyOrders() {
-        return ResponseEntity.ok(orderService.getMyOrders());
+    public ResponseEntity<List<CartDto>> getMyOrders(
+            @RequestParam(value = "lang", required = false) String lang
+    ) {
+        return ResponseEntity.ok(orderService.getMyOrders(lang));
     }
 
     @GetMapping("/{id}/statusHistory")

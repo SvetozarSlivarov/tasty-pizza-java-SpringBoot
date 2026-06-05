@@ -18,11 +18,24 @@ public final class PastaMapper {
         return map(pasta, true);
     }
 
+    public static PastaDto toPastaDto(Pasta pasta, String name, String description) {
+        return map(pasta, true, name, description);
+    }
+
     public static PastaDto toPastaDtoWithoutFullData(Pasta pasta) {
         return map(pasta, false);
     }
 
+    public static PastaDto toPastaDtoWithoutFullData(Pasta pasta, String name, String description) {
+        return map(pasta, false, name, description);
+    }
+
     private static PastaDto map(Pasta pasta, boolean includeDetails) {
+        var product = pasta.getProduct();
+        return map(pasta, includeDetails, product.getName(), product.getDescription());
+    }
+
+    private static PastaDto map(Pasta pasta, boolean includeDetails, String name, String description) {
         var product = pasta.getProduct();
 
         List<PastaSauceDto> sauceDtos =
@@ -41,8 +54,8 @@ public final class PastaMapper {
 
         return new PastaDto(
                 pasta.getId(),
-                product.getName(),
-                product.getDescription(),
+                name,
+                description,
                 product.getBasePrice().toString(),
                 product.getType().toString(),
                 product.isDeleted(),

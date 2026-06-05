@@ -18,10 +18,9 @@ import static bg.svetozar.tastypizza.exception.ErrorMessage.REQUIRED_ALLOWED_ING
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 public record PizzaRequest(
-        @NotBlank(message = REQUIRED_NAME)
-        @Size(min = 5, max = 100, message = INVALID_PIZZA_NAME_BETWEEN_5_100_CHARS)
         String name,
 
         @Size(max = 1000, message = INVALID_PIZZA_DESCRIPTION_MAX_1000_CHARS)
@@ -50,6 +49,10 @@ public record PizzaRequest(
 
         @Valid
         @NotNull(message = REQUIRED_ALLOWED_INGREDIENTS)
-        List<@Valid PizzaAllowedIngredientRequest> allowedIngredients
+        List<@Valid PizzaAllowedIngredientRequest> allowedIngredients,
+
+        Map<String, Map<String, String>> translations,
+
+        Map<String, Map<String, String>> fields
 ) {
 }

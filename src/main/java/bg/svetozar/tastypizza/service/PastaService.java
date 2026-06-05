@@ -29,19 +29,25 @@ public class PastaService {
 
     private final PastaRepository pastaRepository;
     private final ProductService productService;
+    private final LocalizedTextService localizedTextService;
     private final IngredientRepository ingredientRepository;
     private final PastaSauceRepository pastaSauceRepository;
     private final PastaAllowedIngredientRepository pastaAllowedIngredientRepository;
 
     @Transactional(readOnly = true)
     public List<PastaDto> getAll(boolean fullView) {
+        return getAll(fullView, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PastaDto> getAll(boolean fullView, String lang) {
         List<Pasta> pastas = pastaRepository.findAllLight();
 
         if (fullView) {
             hydrateDetails(pastas);
-            return pastas.stream().map(PastaMapper::toPastaDto).toList();
+            return pastas.stream().map(pasta -> toPastaDto(pasta, true, lang)).toList();
         }
-        return pastas.stream().map(PastaMapper::toPastaDtoWithoutFullData).toList();
+        return pastas.stream().map(pasta -> toPastaDto(pasta, false, lang)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -57,6 +63,11 @@ public class PastaService {
 
     @Transactional(readOnly = true)
     public PastaDto getById(Long id) {
+        return getById(id, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PastaDto getById(Long id, String lang) {
         Pasta pasta = pastaRepository.findByIdFull(id)
                 .orElseThrow(() -> new NotFoundException(
                         PASTA_NOT_FOUND,
@@ -65,20 +76,36 @@ public class PastaService {
                 ));
 
         hydrateDetails(List.of(pasta));
-        return PastaMapper.toPastaDto(pasta);
+        return toPastaDto(pasta, true, lang);
     }
 
     public PastaDto create(PastaRequest request) {
         BigDecimal basePrice = parseMoney(request.basePrice(), "basePrice");
+        String englishName = localizedTextService.resolveEnglishField(
+                request.translations(), request.fields(), "name", request.name()
+        );
+        String englishDescription = localizedTextService.resolveEnglishField(
+                request.translations(), request.fields(), "description", request.description()
+        );
+
+        validateEnglishProductText(englishName, englishDescription);
 
         validateIngredientLists(request.sauces(), request.allowedIngredients());
 
         Product product = productService.createProduct(
-                request.name(),
-                request.description(),
+                englishName,
+                englishDescription,
                 basePrice,
                 ProductType.PASTA,
                 request.imageBase64()
+        );
+
+        localizedTextService.saveTranslations(
+                "PRODUCT",
+                product.getId(),
+                request.translations(),
+                request.fields(),
+                Map.of("name", englishName, "description", englishDescription == null ? "" : englishDescription)
         );
 
         Pasta pasta = Pasta.builder()
@@ -101,16 +128,32 @@ public class PastaService {
                 ));
 
         BigDecimal basePrice = parseMoney(request.basePrice(), "basePrice");
+        String englishName = localizedTextService.resolveEnglishField(
+                request.translations(), request.fields(), "name", request.name()
+        );
+        String englishDescription = localizedTextService.resolveEnglishField(
+                request.translations(), request.fields(), "description", request.description()
+        );
+
+        validateEnglishProductText(englishName, englishDescription);
 
         validateIngredientLists(request.sauces(), request.allowedIngredients());
 
         Product updatedProduct = productService.updateProduct(
                 existing.getProduct().getId(),
-                request.name(),
-                request.description(),
+                englishName,
+                englishDescription,
                 basePrice,
                 ProductType.PASTA,
                 request.imageBase64()
+        );
+
+        localizedTextService.saveTranslations(
+                "PRODUCT",
+                updatedProduct.getId(),
+                request.translations(),
+                request.fields(),
+                Map.of("name", englishName, "description", englishDescription == null ? "" : englishDescription)
         );
 
         existing.setProduct(updatedProduct);
@@ -308,6 +351,81 @@ public class PastaService {
             pasta.setSauces(pastaSauceRepository.findAllByPastaWithIngredient(pasta));
             pasta.setAllowedIngredients(pastaAllowedIngredientRepository.findAllByPastaWithIngredient(pasta));
         });
+    }
+
+    private PastaDto toPastaDto(Pasta pasta, boolean includeDetails, String lang) {
+        Product product = pasta.getProduct();
+        String name = localizedTextService.getTranslationOrDefault(
+                "PRODUCT",
+                product.getId(),
+                "name",
+                lang,
+                product.getName()
+        );
+        String description = localizedTextService.getTranslationOrDefault(
+                "PRODUCT",
+                product.getId(),
+                "description",
+                lang,
+                product.getDescription()
+        );
+
+        PastaDto dto = includeDetails
+                ? PastaMapper.toPastaDto(pasta, name, description)
+                : PastaMapper.toPastaDtoWithoutFullData(pasta, name, description);
+        return withLocalizedIngredientNames(dto, lang);
+    }
+
+    private PastaDto withLocalizedIngredientNames(PastaDto dto, String lang) {
+        List<PastaSauceDto> sauces = dto.sauces() == null
+                ? List.of()
+                : dto.sauces().stream()
+                .map(item -> new PastaSauceDto(
+                        item.id(),
+                        item.pastaId(),
+                        item.ingredientId(),
+                        localizedTextService.getTranslationOrDefault("INGREDIENT", item.ingredientId(), "name", lang, item.ingredientName()),
+                        item.extraPrice(),
+                        item.spicyLevel()
+                ))
+                .toList();
+
+        List<PastaAllowedIngredientDto> allowedIngredients = dto.allowedIngredients() == null
+                ? List.of()
+                : dto.allowedIngredients().stream()
+                .map(item -> new PastaAllowedIngredientDto(
+                        item.id(),
+                        item.pastaId(),
+                        item.ingredientId(),
+                        localizedTextService.getTranslationOrDefault("INGREDIENT", item.ingredientId(), "name", lang, item.ingredientName()),
+                        item.extraPrice()
+                ))
+                .toList();
+
+        return new PastaDto(
+                dto.id(),
+                dto.name(),
+                dto.description(),
+                dto.basePrice(),
+                dto.type(),
+                dto.deleted(),
+                dto.deletedAt(),
+                dto.imageUrl(),
+                sauces,
+                allowedIngredients
+        );
+    }
+
+    private void validateEnglishProductText(String englishName, String englishDescription) {
+        if (!StringUtils.hasText(englishName)) {
+            throw new BadRequestException(REQUIRED_NAME, ErrorCode.BAD_REQUEST, ErrorContext.of("field", "translations.name.en"));
+        }
+        if (englishName.length() < 2 || englishName.length() > 100) {
+            throw new BadRequestException(INVALID_PASTA_NAME_BETWEEN_2_100_CHARS, ErrorCode.BAD_REQUEST, ErrorContext.of("field", "translations.name.en"));
+        }
+        if (englishDescription != null && englishDescription.length() > 1000) {
+            throw new BadRequestException(INVALID_PASTA_DESCRIPTION_MAX_1000_CHARS, ErrorCode.BAD_REQUEST, ErrorContext.of("field", "translations.description.en"));
+        }
     }
 
     private Pasta requirePasta(Long pastaId) {

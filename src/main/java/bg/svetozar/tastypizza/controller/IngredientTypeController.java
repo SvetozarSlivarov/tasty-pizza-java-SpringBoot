@@ -4,6 +4,7 @@ import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeDto;
 import bg.svetozar.tastypizza.model.dto.ingredientType.IngredientTypeRequest;
 import bg.svetozar.tastypizza.model.mapper.IngredientTypeMapper;
 import bg.svetozar.tastypizza.service.IngredientTypeService;
+import bg.svetozar.tastypizza.service.LocalizedTextService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -23,24 +24,35 @@ public class IngredientTypeController {
 
     private final IngredientTypeService ingredientTypeService;
     private final IngredientTypeMapper ingredientTypeMapper;
+    private final LocalizedTextService localizedTextService;
 
     @GetMapping
-    public List<IngredientTypeDto> getAll() {
+    public List<IngredientTypeDto> getAll(@RequestParam(name = "lang", required = false) String lang) {
         return ingredientTypeService.findAll().stream()
-                .map(ingredientTypeMapper::toResponse)
+                .map(type -> ingredientTypeMapper.toResponse(
+                        type,
+                        localizedTextService.getTranslationOrDefault("INGREDIENT_TYPE", type.getId(), "name", lang, type.getName())
+                ))
                 .toList();
     }
 
     @GetMapping("/{id}")
-    public IngredientTypeDto getById(@PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id) {
-        return ingredientTypeMapper.toResponse(ingredientTypeService.findById(id));
+    public IngredientTypeDto getById(
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id,
+            @RequestParam(name = "lang", required = false) String lang
+    ) {
+        var type = ingredientTypeService.findById(id);
+        return ingredientTypeMapper.toResponse(
+                type,
+                localizedTextService.getTranslationOrDefault("INGREDIENT_TYPE", type.getId(), "name", lang, type.getName())
+        );
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public IngredientTypeDto save(@Valid @RequestBody IngredientTypeRequest dto) {
-        return ingredientTypeMapper.toResponse(ingredientTypeService.create(dto.name()));
+        return ingredientTypeMapper.toResponse(ingredientTypeService.create(dto));
     }
 
     @PutMapping("/{id}")
@@ -50,7 +62,7 @@ public class IngredientTypeController {
             @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id,
             @Valid @RequestBody IngredientTypeRequest dto
     ) {
-        return ingredientTypeMapper.toResponse(ingredientTypeService.update(id, dto.name()));
+        return ingredientTypeMapper.toResponse(ingredientTypeService.update(id, dto));
     }
 
     @DeleteMapping("/{id}")

@@ -32,9 +32,10 @@ public class IngredientController {
                     regexp = "active|all|deleted",
                     message = "show must be one of: active, all, deleted"
             )
-            String show
+            String show,
+            @RequestParam(name = "lang", required = false) String lang
     ) {
-        List<IngredientDto> result = ingredientService.findAllBasic(show);
+        List<IngredientDto> result = ingredientService.findAllBasic(show, lang);
         return ResponseEntity.ok(result);
     }
 
@@ -46,17 +47,19 @@ public class IngredientController {
                     regexp = "active|all|deleted",
                     message = "show must be one of: active, all, deleted"
             )
-            String show
+            String show,
+            @RequestParam(name = "lang", required = false) String lang
     ) {
-        List<IngredientWithTypeDto> result = ingredientService.findAllWithType(show);
+        List<IngredientWithTypeDto> result = ingredientService.findAllWithType(show, lang);
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<IngredientWithTypeDto> getOne(
-            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id
+            @PathVariable @Positive(message = INVALID_ID_POSITIVE) Long id,
+            @RequestParam(name = "lang", required = false) String lang
     ) {
-        IngredientWithTypeDto response = ingredientService.findOne(id);
+        IngredientWithTypeDto response = ingredientService.findOne(id, lang);
         return ResponseEntity.ok(response);
     }
 

@@ -9,11 +9,15 @@ public final class DrinkMapper {
 
     public static DrinkDto toDrinkDto(Drink drink) {
         var product = drink.getProduct();
+        return toDrinkDto(drink, product.getName(), product.getDescription());
+    }
 
+    public static DrinkDto toDrinkDto(Drink drink, String name, String description) {
+        var product = drink.getProduct();
         return new DrinkDto(
                 drink.getId(),
-                product.getName(),
-                product.getDescription(),
+                name,
+                description,
                 product.getBasePrice().toString(),
                 product.getType().toString(),
                 product.isDeleted(),

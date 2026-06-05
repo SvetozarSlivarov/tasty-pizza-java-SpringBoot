@@ -49,16 +49,18 @@ public class CartController {
     @GetMapping
     public ResponseEntity<CartDto> getCart(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
-            HttpServletResponse response
+            HttpServletResponse response,
+            @RequestParam(value = "lang", required = false) String lang
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
-        return ResponseEntity.ok(cartService.getCurrentCart(guestToken));
+        return ResponseEntity.ok(cartService.getCurrentCart(guestToken, lang));
     }
 
     @PostMapping("/items/drink")
     public ResponseEntity<CartDto> addDrinkToCart(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
+            @RequestParam(value = "lang", required = false) String lang,
             @Valid @RequestBody AddDrinkToCartRequest request
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
@@ -67,7 +69,8 @@ public class CartController {
                 guestToken,
                 request.productId(),
                 request.quantity(),
-                request.note()
+                request.note(),
+                lang
         );
 
         return ResponseEntity.ok(cart);
@@ -77,6 +80,7 @@ public class CartController {
     public ResponseEntity<CartDto> addPizzaToCart(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
+            @RequestParam(value = "lang", required = false) String lang,
             @Valid @RequestBody AddPizzaToCartRequest request
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
@@ -88,7 +92,8 @@ public class CartController {
                 request.quantity(),
                 request.note(),
                 request.removeIngredientIds(),
-                request.addIngredientIds()
+                request.addIngredientIds(),
+                lang
         );
 
         return ResponseEntity.ok(cart);
@@ -98,6 +103,7 @@ public class CartController {
     public ResponseEntity<CartDto> addPastaToCart(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
+            @RequestParam(value = "lang", required = false) String lang,
             @Valid @RequestBody AddPastaToCartRequest request
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
@@ -108,7 +114,8 @@ public class CartController {
                 request.pastaSauceId(),
                 request.quantity(),
                 request.note(),
-                request.addIngredientIds()
+                request.addIngredientIds(),
+                lang
         );
 
         return ResponseEntity.ok(cart);
@@ -119,26 +126,29 @@ public class CartController {
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
             @PathVariable @Min(value = 1, message = INVALID_ITEM_ID_POSITIVE) Long itemId,
+            @RequestParam(value = "lang", required = false) String lang,
             @Valid @RequestBody UpdateCartItemRequest request
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
-        return ResponseEntity.ok(cartService.patchCartItem(guestToken, itemId, request));
+        return ResponseEntity.ok(cartService.patchCartItem(guestToken, itemId, request, lang));
     }
 
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<CartDto> removeItem(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
-            @PathVariable @Min(value = 1, message = INVALID_ITEM_ID_POSITIVE) Long itemId
+            @PathVariable @Min(value = 1, message = INVALID_ITEM_ID_POSITIVE) Long itemId,
+            @RequestParam(value = "lang", required = false) String lang
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
-        return ResponseEntity.ok(cartService.removeItem(guestToken, itemId));
+        return ResponseEntity.ok(cartService.removeItem(guestToken, itemId, lang));
     }
 
     @PostMapping("/checkout")
     public ResponseEntity<CartDto> checkout(
             @CookieValue(name = CART_TOKEN_COOKIE, required = false) String cartToken,
             HttpServletResponse response,
+            @RequestParam(value = "lang", required = false) String lang,
             @Valid @RequestBody CheckoutRequest request
     ) {
         String guestToken = ensureCartTokenCookie(cartToken, response);
@@ -146,7 +156,8 @@ public class CartController {
         CartDto cart = cartService.checkout(
                 guestToken,
                 request.phone(),
-                request.address()
+                request.address(),
+                lang
         );
 
         return ResponseEntity.ok(cart);
