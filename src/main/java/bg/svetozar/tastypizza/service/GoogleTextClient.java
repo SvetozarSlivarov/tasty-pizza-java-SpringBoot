@@ -1,6 +1,6 @@
 package bg.svetozar.tastypizza.service;
 
-interface DeepLTextClient {
+interface GoogleTextClient {
 
     String translateText(String text, String sourceLanguage, String targetLanguage) throws Exception;
 }

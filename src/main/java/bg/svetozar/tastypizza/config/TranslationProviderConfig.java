@@ -1,6 +1,6 @@
 package bg.svetozar.tastypizza.config;
 
-import bg.svetozar.tastypizza.service.DeepLTranslationProvider;
+import bg.svetozar.tastypizza.service.GoogleTranslationProvider;
 import bg.svetozar.tastypizza.service.NoOpTranslationProvider;
 import bg.svetozar.tastypizza.service.TranslationProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,12 +13,12 @@ public class TranslationProviderConfig {
 
     @Bean
     public TranslationProvider translationProvider(
-            @Value("${deepl.api.key:}") String apiKey,
-            @Value("${deepl.api.enabled:false}") boolean enabled
+            @Value("${google.translate.api.key:}") String apiKey,
+            @Value("${google.translate.api.enabled:false}") boolean enabled
     ) {
         if (!enabled || !StringUtils.hasText(apiKey)) {
             return new NoOpTranslationProvider();
         }
-        return new DeepLTranslationProvider(apiKey);
+        return new GoogleTranslationProvider(apiKey);
     }
 }

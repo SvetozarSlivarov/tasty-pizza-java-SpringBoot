@@ -7,22 +7,22 @@ import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
-public class DeepLTranslationProvider implements TranslationProvider {
+public class GoogleTranslationProvider implements TranslationProvider {
 
     private static final Map<String, String> LANGUAGE_CODES = Map.of(
-            "en", "EN",
-            "bg", "BG",
-            "de", "DE",
-            "fr", "FR"
+            "en", "en",
+            "bg", "bg",
+            "de", "de",
+            "fr", "fr"
     );
 
-    private final DeepLTextClient client;
+    private final GoogleTextClient client;
 
-    public DeepLTranslationProvider(String apiKey) {
-        this(new OfficialDeepLTextClient(apiKey));
+    public GoogleTranslationProvider(String apiKey) {
+        this(new OfficialGoogleTranslateTextClient(apiKey));
     }
 
-    DeepLTranslationProvider(DeepLTextClient client) {
+    GoogleTranslationProvider(GoogleTextClient client) {
         this.client = client;
     }
 
@@ -36,7 +36,7 @@ public class DeepLTranslationProvider implements TranslationProvider {
         String target = normalizeLanguage(targetLanguage);
 
         if (source == null || target == null) {
-            log.warn("DeepL translation skipped because language is unsupported. source={} target={}", sourceLanguage, targetLanguage);
+            log.warn("Google translation skipped because language is unsupported. source={} target={}", sourceLanguage, targetLanguage);
             return text;
         }
 
@@ -47,7 +47,7 @@ public class DeepLTranslationProvider implements TranslationProvider {
         try {
             return client.translateText(text, source, target);
         } catch (Exception ex) {
-            log.warn("DeepL translation failed. source={} target={}", source, target, ex);
+            log.warn("Google translation failed. source={} target={}", source, target, ex);
             return text;
         }
     }
