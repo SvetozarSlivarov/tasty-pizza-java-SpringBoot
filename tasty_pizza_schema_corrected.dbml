@@ -1,0 +1,213 @@
+Project tasty_pizza_spring {
+  database_type: 'MySQL'
+  Note: 'Corrected from Spring Boot JPA entities in tasty-pizza-java-SpringBoot'
+}
+
+Enum user_role {
+  ADMIN
+  CUSTOMER
+}
+
+Enum product_type {
+  PIZZA
+  PASTA
+  DRINK
+}
+
+Enum spicy_level {
+  MILD
+  MEDIUM
+  HOT
+}
+
+Enum pizza_size {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+Enum dough_type {
+  THIN
+  CLASSIC
+  WHOLEGRAIN
+}
+
+Enum order_status {
+  CART
+  ORDERED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+Enum customization_action {
+  ADD
+  REMOVE
+}
+
+Table users {
+  id bigint [pk, increment]
+  fullname varchar(255)
+  username varchar(50) [not null, unique]
+  token_version int [not null, default: 0, note: 'Java field tokenVersion; physical column name from Spring naming strategy']
+  password varchar(255) [not null]
+  role user_role [not null]
+  created_at datetime [not null]
+  deleted boolean [not null, default: false]
+  deleted_at datetime
+}
+
+Table products {
+  id bigint [pk, increment]
+  type product_type [not null]
+  name varchar(100) [not null]
+  description text
+  base_price decimal(8,2) [not null]
+  image_url varchar(1024)
+  created_at datetime [not null]
+  is_deleted boolean [not null, default: false]
+  deleted_at datetime
+}
+
+Table pizzas {
+  product_id bigint [pk]
+  spicy_level spicy_level [not null]
+}
+
+Table pizza_variants {
+  id bigint [pk, increment]
+  pizza_id bigint [not null]
+  size pizza_size [not null]
+  dough dough_type [not null]
+  extra_price decimal(8,2) [note: 'Java default is BigDecimal.ZERO; entity column is nullable']
+}
+
+Table ingredient_types {
+  id bigint [pk, increment]
+  name varchar(50) [not null]
+}
+
+Table ingredients {
+  id bigint [pk, increment]
+  name varchar(100) [not null]
+  type_id bigint [not null]
+  is_deleted boolean [not null, default: false]
+  deleted_at datetime
+}
+
+Table pizza_ingredients {
+  id bigint [pk, increment]
+  pizza_id bigint [not null]
+  ingredient_id bigint [not null]
+  is_removable boolean [not null]
+}
+
+Table pizza_allowed_ingredients {
+  id bigint [pk, increment]
+  pizza_id bigint [not null]
+  ingredient_id bigint [not null]
+  extra_price decimal(8,2) [not null]
+}
+
+Table pastas {
+  product_id bigint [pk]
+}
+
+Table pasta_sauces {
+  id bigint [pk, increment]
+  pasta_id bigint [not null]
+  ingredient_id bigint [not null]
+  extra_price decimal(8,2) [not null]
+  spicy_level spicy_level [not null]
+}
+
+Table pasta_allowed_ingredients {
+  id bigint [pk, increment]
+  pasta_id bigint [not null]
+  ingredient_id bigint [not null]
+  extra_price decimal(8,2) [not null]
+}
+
+Table drinks {
+  product_id bigint [pk]
+}
+
+Table orders {
+  id bigint [pk, increment]
+  user_id bigint
+  guest_token varchar(255)
+  status order_status [not null, default: 'CART']
+  delivery_phone varchar(32)
+  delivery_address text
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+Table order_items {
+  id bigint [pk, increment]
+  order_id bigint [not null]
+  product_id bigint [not null]
+  pizza_variant_id bigint
+  pasta_sauce_id bigint
+  quantity int [not null]
+  unit_price decimal(8,2) [not null]
+  note text
+}
+
+Table order_item_customizations {
+  id bigint [pk, increment]
+  order_item_id bigint [not null]
+  ingredient_id bigint [not null]
+  action customization_action [not null]
+}
+
+Table order_status_changes {
+  id bigint [pk, increment]
+  order_id bigint [not null]
+  status order_status [not null]
+  changed_at datetime [not null]
+}
+
+Table translations {
+  id bigint [pk, increment]
+  entity_type varchar(50) [not null]
+  entity_id bigint [not null]
+  field_name varchar(50) [not null]
+  language varchar(10) [not null]
+  translated_text text
+  auto_generated boolean [not null, default: false]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (entity_type, entity_id, field_name, language) [unique, name: 'uk_translation_entity_field_language']
+  }
+
+  Note: 'Polymorphic translation table. entity_type/entity_id may point to products, ingredients, or ingredient_types depending on value.'
+}
+
+Ref: pizzas.product_id - products.id
+Ref: drinks.product_id - products.id
+Ref: pastas.product_id - products.id
+
+Ref: pizza_variants.pizza_id > pizzas.product_id
+Ref: ingredients.type_id > ingredient_types.id
+Ref: pizza_ingredients.pizza_id > pizzas.product_id
+Ref: pizza_ingredients.ingredient_id > ingredients.id
+Ref: pizza_allowed_ingredients.pizza_id > pizzas.product_id
+Ref: pizza_allowed_ingredients.ingredient_id > ingredients.id
+
+Ref: pasta_sauces.pasta_id > pastas.product_id
+Ref: pasta_sauces.ingredient_id > ingredients.id
+Ref: pasta_allowed_ingredients.pasta_id > pastas.product_id
+Ref: pasta_allowed_ingredients.ingredient_id > ingredients.id
+
+Ref: orders.user_id > users.id
+Ref: order_items.order_id > orders.id
+Ref: order_items.product_id > products.id
+Ref: order_items.pizza_variant_id > pizza_variants.id
+Ref: order_items.pasta_sauce_id > pasta_sauces.id
+Ref: order_item_customizations.order_item_id > order_items.id
+Ref: order_item_customizations.ingredient_id > ingredients.id
+Ref: order_status_changes.order_id > orders.id
